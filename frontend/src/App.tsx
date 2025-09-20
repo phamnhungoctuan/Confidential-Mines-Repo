@@ -246,7 +246,18 @@ export default function App() {
       setProofJson({ board: board.flat(), seed, player: account, boardSize: board.flat().length });
     } else {
       if (row > 0) {
-        setRevealedRows((prev) => new Set([...prev, row - 1]));
+        // 🔹 Hiện tất cả ô của hàng hiện tại
+        const newOpenedRow = new Set(openedTiles);
+        board[row].forEach((_, c) => newOpenedRow.add(`${row}-${c}`));
+        setOpenedTiles(newOpenedRow);
+
+        // 🔹 Mở khóa hàng trên, khóa lại hàng hiện tại
+        setRevealedRows((prev) => {
+          const updated = new Set(prev);
+          updated.delete(row); // khoá lại hàng vừa thoát
+          updated.add(row - 1);
+          return updated;
+        });
       } else {
         setIsActive(false);
         setStatusMsg("🏆 Congratulations! You won the game!");
@@ -375,10 +386,10 @@ export default function App() {
                 const opened = openedTiles.has(key);
 
                 if (state.boom) {
-                  bg = cell === 1 ? "#e74c3c" : "#2ecc71";
+                  bg = cell === 1 ? "#c0392b" : "#27ae60"; // màu đậm hơn
                   content = cell === 1 ? "💀" : "";
                 } else if (opened) {
-                  bg = cell === 1 ? "#e74c3c" : "#2ecc71";
+                  bg = cell === 1 ? "#c0392b" : "#27ae60"; // màu đậm hơn
                   content = cell === 1 ? "💀" : "";
                 }
 
@@ -403,8 +414,10 @@ export default function App() {
                       fontSize: 26,
                       cursor: locked || state.boom || opened ? "not-allowed" : "pointer",
                       userSelect: "none",
-                      transition: "background 0.3s",
+                      transition: "background 0.3s, box-shadow 0.3s, border 0.3s",
                       animation: !opened && !state.boom && r === activeRow ? "pulse 1.5s infinite" : "none",
+                      border: opened ? "2px solid #f1c40f" : "2px solid transparent",
+                      boxShadow: opened ? "0 0 10px rgba(241,196,15,0.7)" : "none",
                     }}
                   >
                     {content}
@@ -474,7 +487,7 @@ export default function App() {
           rel="noopener noreferrer"
           style={{ color: "#bbb", textDecoration: "none" }}
         >
-          🐙 My GitHub
+          🐙 https://github.com/phamnhungoctuan
         </a>
       </footer>
     </div>
