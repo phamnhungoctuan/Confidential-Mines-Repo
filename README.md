@@ -230,6 +230,18 @@ Once deployed, connect MetaMask to **Sepolia Testnet** and start playing 🎉
 
 ---
 
+## 🎮 Gameplay Enhancements
+
+- **Bet & Cashout** — allow players to choose an initial stake and cash out based on the multiplier.
+
+- **Automatic Verify UI** — build an interface where players can input a commit hash and seed to automatically
+  reconstruct the entire game, enabling trustless verification by players or third parties.
+
+- **Reputation & Leaderboards** — maintain transparent leaderboards based on multipliers, while keeping player
+  identities private.
+
+---
+
 ## 📚 Documentation
 
 - [FHEVM Documentation](https://docs.zama.ai/fhevm)
