@@ -204,7 +204,3 @@ Built with ❤️ using **[Zama’s FHEVM](https://zama.ai)** — bringing **pri
 ## 🐙 GitHub
 
 [Visit Developer’s GitHub](https://github.com/phamnhungoctuan)
-
-```
-
-```
