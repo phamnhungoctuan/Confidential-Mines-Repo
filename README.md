@@ -37,6 +37,63 @@ This makes the game **100% transparent** while keeping gameplay **private and fu
 
 ---
 
+## 🔑 Encryption via Worker
+
+The encryption process is computationally heavy. To avoid blocking the UI, the board is encrypted inside a **Web
+Worker** that loads the FHEVM SDK:
+
+```js
+/* eslint-disable no-undef */
+importScripts("/fhevm-worker.js");
+
+let fhevm = null;
+
+self.onmessage = async (e) => {
+  const { board, contractAddress, userAddress, sdkConfig } = e.data;
+
+  try {
+    const PossibleSDK = self.RelayerSDK || self.relayerSDK || self.fhevm || self.FHE || self.Zama;
+    if (!PossibleSDK) throw new Error("FHE SDK global not found");
+
+    if (!fhevm) {
+      let instanceCreator;
+      if (typeof PossibleSDK === "function") {
+        const maybeNeedsInit = new PossibleSDK();
+        if (typeof maybeNeedsInit.initSDK === "function") {
+          await maybeNeedsInit.initSDK();
+        }
+        instanceCreator = maybeNeedsInit;
+      } else {
+        instanceCreator = PossibleSDK;
+        if (typeof instanceCreator.initSDK === "function") {
+          await instanceCreator.initSDK();
+        }
+      }
+      fhevm = await instanceCreator.createInstance(sdkConfig);
+    }
+
+    const buf = fhevm.createEncryptedInput(contractAddress, userAddress);
+    board.forEach((v) => buf.add32(BigInt(v)));
+    const result = await buf.encrypt();
+
+    self.postMessage({
+      encryptedTiles: result.handles,
+      inputProof: result.inputProof,
+    });
+  } catch (err) {
+    self.postMessage({ error: err?.message || String(err) });
+  }
+};
+```
+
+This ensures:
+
+- 🔄 **Non-blocking UI** — players can still interact with the game while encryption runs in background.
+- ⚡ **Optimized performance** — heavy FHE operations are isolated from the main thread.
+- 🔐 **Secure commitments** — encrypted inputs + inputProof are generated before submitting to the smart contract.
+
+---
+
 ## 🌐 Demo
 
 - 🎮 **Play the Game**: [confidential-mines.vercel.app](https://confidential-mines.vercel.app/)
@@ -50,9 +107,7 @@ This makes the game **100% transparent** while keeping gameplay **private and fu
 ### Endpoint
 
 ```
-
-POST [https://confidential-mines-verify.vercel.app/api/verify](https://confidential-mines-verify.vercel.app/api/verify)
-
+POST https://confidential-mines-verify.vercel.app/api/verify
 ```
 
 ### Example Payload
@@ -76,7 +131,7 @@ POST [https://confidential-mines-verify.vercel.app/api/verify](https://confident
 <p>The decrypted board matches the committed on-chain state. The game is provably fair.</p>
 ```
 
-If verification fails, the server will return:
+If verification fails:
 
 ```html
 <h2>❌ Verification Failed</h2>
@@ -124,7 +179,8 @@ Once deployed, connect MetaMask to **Sepolia Testnet** and start playing 🎉
 - **Smart Contracts**: Solidity + Hardhat
 - **Frontend**: React + TypeScript + Ethers.js
 - **Encryption**: [FHEVM](https://docs.zama.ai/fhevm) by Zama
-- **Wallet**: Sepolia Testnet
+- **Wallet**: MetaMask
+- **Network**: Sepolia Testnet
 
 ---
 
@@ -148,3 +204,7 @@ Built with ❤️ using **[Zama’s FHEVM](https://zama.ai)** — bringing **pri
 ## 🐙 GitHub
 
 [Visit Developer’s GitHub](https://github.com/phamnhungoctuan)
+
+```
+
+```
