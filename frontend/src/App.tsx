@@ -385,12 +385,31 @@ export default function App() {
                 const locked = !revealedRows.has(r);
                 const opened = openedTiles.has(key);
 
+                let border = "2px solid transparent";
+                let boxShadow = "none";
+
                 if (state.boom) {
                   bg = cell === 1 ? "#c0392b" : "#27ae60"; // màu đậm hơn
                   content = cell === 1 ? "💀" : "";
+                  if (opened) {
+                    if (cell === 1) {
+                      border = "2px solid #e67e22"; // đỏ cam
+                      boxShadow = "0 0 10px rgba(230,126,34,0.8)";
+                    } else {
+                      border = "2px solid #3498db"; // xanh dương
+                      boxShadow = "0 0 10px rgba(52,152,219,0.8)";
+                    }
+                  }
                 } else if (opened) {
                   bg = cell === 1 ? "#c0392b" : "#27ae60"; // màu đậm hơn
                   content = cell === 1 ? "💀" : "";
+                  if (cell === 1) {
+                    border = "2px solid #e67e22"; // đỏ cam
+                    boxShadow = "0 0 10px rgba(230,126,34,0.8)";
+                  } else {
+                    border = "2px solid #3498db"; // xanh dương
+                    boxShadow = "0 0 10px rgba(52,152,219,0.8)";
+                  }
                 }
 
                 const activeRow = revealedRows.size > 0 ? Math.min(...revealedRows) : -1;
@@ -416,8 +435,8 @@ export default function App() {
                       userSelect: "none",
                       transition: "background 0.3s, box-shadow 0.3s, border 0.3s",
                       animation: !opened && !state.boom && r === activeRow ? "pulse 1.5s infinite" : "none",
-                      border: opened ? "2px solid #f1c40f" : "2px solid transparent",
-                      boxShadow: opened ? "0 0 10px rgba(241,196,15,0.7)" : "none",
+                      border,
+                      boxShadow,
                     }}
                   >
                     {content}
