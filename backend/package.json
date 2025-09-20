@@ -1,0 +1,16 @@
+{
+    "name": "fhevm-verify-mines-backend",
+    "description": "",
+    "version": "0.1.0",
+    "author": {
+        "name": "Tuan Pham",
+        "url": "https://x.com/tuanphamit"
+    },
+    "dependencies": {
+        "cors": "^2.8.5",
+        "dotenv": "^17.2.2",
+        "encrypted-types": "^0.0.4",
+        "express": "^5.1.0",
+        "ethers": "^6.12.2"
+    }
+}

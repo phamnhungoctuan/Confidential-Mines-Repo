@@ -1,110 +1,150 @@
-# FHEVM Hardhat Template
+# 🎮 Confidential Mines
 
-A Hardhat-based template for developing Fully Homomorphic Encryption (FHE) enabled Solidity smart contracts using the
-FHEVM protocol by Zama.
+A **provably fair** blockchain game built on top of [Zama's FHEVM](https://zama.ai), where encryption meets on-chain
+gaming.  
+Players can enjoy a fun **Minesweeper-inspired** game while trusting that every outcome is **secure, private, and
+verifiable**.
 
-## Quick Start
+---
 
-For detailed instructions see:
-[FHEVM Hardhat Quick Start Tutorial](https://docs.zama.ai/protocol/solidity-guides/getting-started/quick-start-tutorial)
+## ✨ Features
 
-### Prerequisites
+- 🕹 **Minesweeper-style gameplay** — pick safe tiles, avoid bombs, climb to the top.
+- 🔐 **Privacy by design** — game boards are encrypted using **Fully Homomorphic Encryption (FHE)**.
+- ✅ **Provably fair** — players can independently verify that each game was created honestly.
+- 🌐 **Decentralized** — runs on Ethereum Sepolia testnet, powered by smart contracts.
+- 🦊 **MetaMask integration** — connect your wallet and start playing instantly.
 
-- **Node.js**: Version 20 or higher
-- **npm or yarn/pnpm**: Package manager
+---
 
-### Installation
+## 🔒 Security & Provably-Fair Mechanism
 
-1. **Install dependencies**
+Unlike traditional Web3 games where servers can manipulate outcomes, **Confidential Mines** leverages **Zama’s FHEVM**:
 
-   ```bash
-   npm install
-   ```
+1. **Encrypted Game State**
+   - The board (safe tiles + bombs) is encrypted using **FHE** before deployment.
+   - Even the blockchain and miners cannot see the contents.
 
-2. **Set up environment variables**
+2. **On-chain Commitment**
+   - When a player starts a game, the encrypted board is **committed on-chain**.
+   - This ensures no one (not even the developer) can alter the board after creation.
 
-   ```bash
-   npx hardhat vars set MNEMONIC
+3. **Provably Fair Verification**
+   - At the end of the game (win or lose), a proof JSON is generated.
+   - Anyone can open the **Verify Server** to check that the revealed board matches the original encrypted commitment.
 
-   # Set your Infura API key for network access
-   npx hardhat vars set INFURA_API_KEY
+This makes the game **100% transparent** while keeping gameplay **private and fun**.
 
-   # Optional: Set Etherscan API key for contract verification
-   npx hardhat vars set ETHERSCAN_API_KEY
-   ```
+---
 
-3. **Compile and test**
+## 🌐 Demo
 
-   ```bash
-   npm run compile
-   npm run test
-   ```
+- 🎮 **Play the Game**: [confidential-mines.vercel.app](https://confidential-mines.vercel.app/)
+- 🔎 **Verify Proofs**:
+  [confidential-mines-verify.vercel.app/api/verify](https://confidential-mines-verify.vercel.app/api/verify)
 
-4. **Deploy to local network**
+---
 
-   ```bash
-   # Start a local FHEVM-ready node
-   npx hardhat node
-   # Deploy to local network
-   npx hardhat deploy --network localhost
-   ```
+## 📡 Verify API
 
-5. **Deploy to Sepolia Testnet**
-
-   ```bash
-   # Deploy to Sepolia
-   npx hardhat deploy --network sepolia
-   # Verify contract on Etherscan
-   npx hardhat verify --network sepolia <CONTRACT_ADDRESS>
-   ```
-
-6. **Test on Sepolia Testnet**
-
-   ```bash
-   # Once deployed, you can run a simple test on Sepolia.
-   npx hardhat test --network sepolia
-   ```
-
-## 📁 Project Structure
+### Endpoint
 
 ```
-fhevm-hardhat-template/
-├── contracts/           # Smart contract source files
-│   └── FHECounter.sol   # Example FHE counter contract
-├── deploy/              # Deployment scripts
-├── tasks/               # Hardhat custom tasks
-├── test/                # Test files
-├── hardhat.config.ts    # Hardhat configuration
-└── package.json         # Dependencies and scripts
+
+POST [https://confidential-mines-verify.vercel.app/api/verify](https://confidential-mines-verify.vercel.app/api/verify)
+
 ```
 
-## 📜 Available Scripts
+### Example Payload
 
-| Script             | Description              |
-| ------------------ | ------------------------ |
-| `npm run compile`  | Compile all contracts    |
-| `npm run test`     | Run all tests            |
-| `npm run coverage` | Generate coverage report |
-| `npm run lint`     | Run linting checks       |
-| `npm run clean`    | Clean build artifacts    |
+```json
+{
+  "gameId": 1,
+  "proofJson": {
+    "board": [0, 1, 0, 0, 1, 0],
+    "seed": 123456,
+    "player": "0x1234...abcd",
+    "boardSize": 6
+  }
+}
+```
+
+### Example Response
+
+```html
+<h2>✅ Verification Passed</h2>
+<p>The decrypted board matches the committed on-chain state. The game is provably fair.</p>
+```
+
+If verification fails, the server will return:
+
+```html
+<h2>❌ Verification Failed</h2>
+<p>The provided proof does not match the on-chain commitment.</p>
+```
+
+---
+
+## 🚀 Getting Started
+
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Run locally
+
+```bash
+npm run dev
+```
+
+### 3. Deploy contracts
+
+```bash
+# Local FHEVM-ready node
+npx hardhat node
+
+# Deploy contracts
+npx hardhat deploy --network localhost
+```
+
+### 4. Play on Sepolia
+
+```bash
+npx hardhat deploy --network sepolia
+```
+
+Once deployed, connect MetaMask to **Sepolia Testnet** and start playing 🎉
+
+---
+
+## 🛠 Tech Stack
+
+- **Smart Contracts**: Solidity + Hardhat
+- **Frontend**: React + TypeScript + Ethers.js
+- **Encryption**: [FHEVM](https://docs.zama.ai/fhevm) by Zama
+- **Wallet**: Sepolia Testnet
+
+---
 
 ## 📚 Documentation
 
 - [FHEVM Documentation](https://docs.zama.ai/fhevm)
-- [FHEVM Hardhat Setup Guide](https://docs.zama.ai/protocol/solidity-guides/getting-started/setup)
-- [FHEVM Testing Guide](https://docs.zama.ai/protocol/solidity-guides/development-guide/hardhat/write_test)
-- [FHEVM Hardhat Plugin](https://docs.zama.ai/protocol/solidity-guides/development-guide/hardhat)
-
-## 📄 License
-
-This project is licensed under the BSD-3-Clause-Clear License. See the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-- **GitHub Issues**: [Report bugs or request features](https://github.com/zama-ai/fhevm/issues)
-- **Documentation**: [FHEVM Docs](https://docs.zama.ai)
-- **Community**: [Zama Discord](https://discord.gg/zama)
+- [FHEVM Solidity Guides](https://docs.zama.ai/protocol/solidity-guides/getting-started/setup)
+- [Zama Discord Community](https://discord.gg/zama)
 
 ---
 
-**Built with ❤️ by the Zama team**
+## 🌟 Credits
+
+Built with ❤️ using **[Zama’s FHEVM](https://zama.ai)** — bringing **privacy-preserving smart contracts** to Ethereum.
+
+> Confidential Mines is more than just a game — it’s a **demonstration of the future of Web3 gaming**, where **privacy,
+> fairness, and decentralization** coexist.
+
+---
+
+## 🐙 GitHub
+
+[Visit Developer’s GitHub](https://github.com/phamnhungoctuan)
