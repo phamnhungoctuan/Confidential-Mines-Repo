@@ -9,6 +9,14 @@ verifiable**.
   <img src="./mines.png" alt="Game Flow" width="250"/>
 </p>
 
+```mermaid
+flowchart LR
+    U[👤 User] --> W[🔑 Worker<br/>Encrypt Board]
+    W --> C[⛓ Smart Contract<br/>FHE Commitment]
+    C --> V[🔍 Verify Server<br/>Check Proof]
+    V --> U
+```
+
 ## ✨ Features
 
 - 🕹 **Minesweeper-style gameplay** — pick safe tiles, avoid bombs, climb to the top.
@@ -35,7 +43,41 @@ Unlike traditional Web3 games where servers can manipulate outcomes, **Confident
    - At the end of the game (win or lose), a proof JSON is generated.
    - Anyone can open the **Verify Server** to check that the revealed board matches the original encrypted commitment.
 
-This makes the game **100% transparent** while keeping gameplay **private and fun**.
+> ⚡ **Contract logic requires FHE ciphertext to function.**  
+> Without valid encrypted inputs, the contract cannot progress the game state. This makes FHE not just an add-on, but
+> the **core trust mechanism** of the protocol.
+
+## 🔐 Why FHE Matters
+
+Traditional Web3 games often face two major problems:
+
+1. **Server-side trust**
+   - Game logic may run off-chain, leaving players to _trust the developer_ that results aren’t manipulated.
+   - Even if some state is on-chain, sensitive data (like the bomb positions in Minesweeper) must be hidden off-chain,
+     breaking transparency.
+
+2. **Limited fairness guarantees**
+   - Randomness can be challenged (e.g., weak RNG, biased seeds).
+   - Players cannot always verify that what they see matches the committed state.
+
+---
+
+### 🚀 Confidential Mines with FHEVM
+
+- **Encrypted state on-chain** — the game board is encrypted with FHE and committed directly into the contract.
+- **Privacy + verifiability** — no one (not even miners or developers) can peek at the board, yet the final outcome can
+  still be **independently verified**.
+- **Mandatory encryption** —
+  > ⚡ _Contract logic requires FHE ciphertext to function._  
+  > Without valid encrypted inputs, the game cannot progress. This ensures FHE is the **core trust mechanism** of the
+  > protocol.
+- **Provably fair by design** — the Verify Server proves that the revealed board matches the encrypted on-chain
+  commitment.
+
+---
+
+✨ With **Zama’s FHEVM**, Confidential Mines demonstrates a future of Web3 gaming where **privacy, fairness, and
+decentralization** are not in conflict — they work together.
 
 ---
 
@@ -101,6 +143,8 @@ This ensures:
 - 🎮 **Play the Game**: [confidential-mines.vercel.app](https://confidential-mines.vercel.app/)
 - 🔎 **Verify Proofs**:
   [confidential-mines-verify.vercel.app/api/verify](https://confidential-mines-verify.vercel.app/api/verify)
+- **Contract address (Sepolia Testnet)**:
+  [0x3b1e64a5cfbb3ad594eb4a79502d609cee71b244](https://sepolia.etherscan.io/address/0x3b1e64a5cfbb3ad594eb4a79502d609cee71b244)
 
 ---
 
