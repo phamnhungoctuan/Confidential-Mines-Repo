@@ -5,7 +5,9 @@ gaming.
 Players can enjoy a fun **Minesweeper-inspired** game while trusting that every outcome is **secure, private, and
 verifiable**.
 
----
+<p align="center">
+  <img src="./mines.png" alt="Game Flow" width="250"/>
+</p>
 
 ## ✨ Features
 
@@ -201,6 +203,7 @@ Built with ❤️ using **[Zama’s FHEVM](https://zama.ai)** — bringing **pri
 
 ---
 
-## 🐙 GitHub
+## Contact
 
-[Visit Developer’s GitHub](https://github.com/phamnhungoctuan)
+- GitHub: [https://github.com/phamnhungoctuan](https://github.com/phamnhungoctuan)
+- Twitter: [https://x.com/tuanphamit](https://x.com/tuanphamit)
