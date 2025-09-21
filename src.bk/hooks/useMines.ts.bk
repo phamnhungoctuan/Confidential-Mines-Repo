@@ -1,9 +1,14 @@
 import { ethers } from "ethers";
 import ConfidentialMinesAbi from "../../frontend/src/abi/ConfidentialMines.json";
 
-const CONTRACT_ADDRESS = "0x3b1E64A5cFBB3ad594eB4A79502D609cEe71B244";
+const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS as string;
 
-/** ⚡ Cấu hình Sepolia cho fhevm SDK */
+if (!CONTRACT_ADDRESS) {
+  throw new Error("⚠️ Missing VITE_CONTRACT_ADDRESS in .env file");
+} else {
+  console.log(`✅ Using contract address: ${CONTRACT_ADDRESS}`);
+}
+
 const sdkConfig = {
   aclContractAddress: "0x687820221192C5B662b25367F70076A37bc79b6c",
   kmsContractAddress: "0x1364cBBf2cDF5032C47d8226a6f6FBD2AFCDacAC",
@@ -16,14 +21,12 @@ const sdkConfig = {
   relayerUrl: "https://relayer.testnet.zama.cloud",
 };
 
-/** ⚡ Lấy instance contract với signer MetaMask */
 async function getContract() {
   const provider = new ethers.BrowserProvider(window.ethereum);
   const signer = await provider.getSigner();
   return new ethers.Contract(CONTRACT_ADDRESS, ConfidentialMinesAbi.abi, signer);
 }
 
-/** ⚡ Encrypt toàn bộ board bằng worker */
 async function encryptBoardInWorker(board: number[], contract: string, user: string) {
   return new Promise<{ encryptedTiles: string[]; inputProof: string }>((resolve, reject) => {
     const worker = new Worker("/encryptWorker.js", { type: "classic" });

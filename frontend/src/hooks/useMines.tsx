@@ -1,7 +1,13 @@
 import { ethers } from "ethers";
 import ConfidentialMinesAbi from "../abi/ConfidentialMines.json";
 
-const CONTRACT_ADDRESS = "0x3b1E64A5cFBB3ad594eB4A79502D609cEe71B244";
+const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS as string;
+
+if (!CONTRACT_ADDRESS) {
+  throw new Error("⚠️ Missing VITE_CONTRACT_ADDRESS in .env file");
+} else {
+  console.log(`✅ Using contract address: ${CONTRACT_ADDRESS}`);
+}
 
 const sdkConfig = {
   aclContractAddress: "0x687820221192C5B662b25367F70076A37bc79b6c",
@@ -73,11 +79,13 @@ export function pickTileLocal(board: number[], index: number, state: { safeCount
   return { safeCount: newSafeCount, multiplier: newMultiplier, boom: false };
 }
 
+/** 💰 Cashout */
 export async function cashOut(gameId: number) {
   console.log("💰 cashOut");
   const contract = await getContract();
   const tx = await contract.cashOut(gameId);
   await tx.wait();
+  console.log("✅ cashOut done");
 }
 
 export async function revealGame(gameId: number, board: number[]) {

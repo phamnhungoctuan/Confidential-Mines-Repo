@@ -1,69 +1,101 @@
-# React + TypeScript + Vite
+# 🎮 Confidential Mines UI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the frontend application for **Confidential Mines**, a fully homomorphic encryption (FHE) powered
+Minesweeper-style game built with **Vite, React.js, and TypeScript**.
 
-Currently, two official plugins are available:
+Players pick tiles on an encrypted board — bomb positions remain **confidential** thanks to FHEVM, ensuring fairness and
+privacy onchain.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## Expanding the ESLint configuration
+## 🚀 Getting Started
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Prerequisites
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Make sure you have the following installed:
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- **Node.js** (v18+ recommended)
+- **npm** or **yarn**
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+---
+
+### Installation
+
+Clone the repository and install dependencies:
+
+```bash
+git clone https://github.com/phamnhungoctuan/Confidential-Mines-Repo
+cd frontend
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## ⚙️ Environment Variables
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+This project uses environment variables for configuration.
+
+### Setup
+
+Copy the example environment file:
+
+```bash
+cp .env.example .env
 ```
+
+Open `.env` and update values as needed:
+
+```bash
+VITE_CONTRACT_ADDRESS="0x3b1E64A5cFBB3ad594eB4A79502D609cEe71B244"
+VITE_TX_HASH_URL="https://sepolia.etherscan.io/tx/"
+```
+
+---
+
+## 📜 Available Commands
+
+In the project directory, you can run:
+
+```bash
+npm run dev
+```
+
+Starts the development server with Vite. Accessible at:
+
+- Local: [http://localhost:5174](http://localhost:5174)
+
+```bash
+npm run build
+```
+
+Builds the project for production. The output will be in the `dist/` folder.
+
+```bash
+npm run preview
+```
+
+Locally preview the production build. Runs a local server to serve files from the `dist/` folder.
+
+```bash
+npm run lint
+```
+
+Runs ESLint to check for code quality and style issues.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Vite**
+- **React.js**
+- **TypeScript**
+- **FHEVM SDK**
+- **ESLint**
+
+---
+
+## 🎯 Gameplay Overview
+
+- **Confidential Board**: Bombs are encrypted, ensuring no one can cheat.
+- **Encrypted Inputs**: Each move is encrypted before being sent onchain.
+- **Provable Fairness**: Anyone can verify the game logic without revealing the bomb positions.
