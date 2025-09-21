@@ -247,6 +247,12 @@ npx hardhat clean && npx hardhat compile
 npx hardhat test
 ```
 
+Example output:
+````
+✅ ABI copied to /Volumes/DATA/fhevm-mines/frontend/src/abi/ConfidentialMines.json
+✅ ABI copied to /Volumes/DATA/fhevm-mines/backend/ConfidentialMines.json
+````
+
 ### 4. Deploy contracts
 
 ```bash
