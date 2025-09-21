@@ -2,13 +2,22 @@ import express from "express";
 import cors from "cors";
 import { ethers } from "ethers";
 import ConfidentialMinesAbi from "./ConfidentialMines.json" with { type: "json" };
+import dotenv from "dotenv";
+
+// Load env
+dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const CONTRACT_ADDRESS = "0x3b1E64A5cFBB3ad594eB4A79502D609cEe71B244";
-const RPC_URL = "https://eth-sepolia.public.blastapi.io";
+const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || "";
+const RPC_URL = process.env.RPC_URL || "";
+const PORT = process.env.PORT || 3001;
+
+if (!CONTRACT_ADDRESS || !RPC_URL) {
+  throw new Error("⚠️ Missing CONTRACT_ADDRESS or RPC_URL in .env file");
+}
 
 // Route verify
 app.post("/verify", async (req, res) => {
@@ -17,7 +26,6 @@ app.post("/verify", async (req, res) => {
   res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS,POST");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  // --- Handle preflight request ---
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
@@ -76,6 +84,6 @@ app.post("/verify", async (req, res) => {
   }
 });
 
-app.listen(3001, () => {
-  console.log("✅ Verify server running at http://localhost:3001");
+app.listen(PORT, () => {
+  console.log(`✅ Verify server running at http://localhost:${PORT}`);
 });
