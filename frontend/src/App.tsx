@@ -49,6 +49,15 @@ function openVerify(gameId: number, proof: any) {
     });
 }
 
+// open all board
+function openAllBoard(board: number[][]) {
+  const allTiles = new Set<string>();
+  board.forEach((row, r) => {
+    row.forEach((_, c) => allTiles.add(`${r}-${c}`));
+  });
+  return allTiles;
+}
+
 export default function App() {
   const [account, setAccount] = useState<string | null>(null);
   const [loadingStep, setLoadingStep] = useState<"" | "encrypt" | "confirm" | "onchain">("");
@@ -63,6 +72,7 @@ export default function App() {
 
   const [state, setState] = useState({ safeCount: 0, multiplier: 1.0, boom: false });
   const [openedTiles, setOpenedTiles] = useState<Set<string>>(new Set());
+  const [pickedTiles, setPickedTiles] = useState<Set<string>>(new Set()); // ô đã đi
   const [revealedRows, setRevealedRows] = useState<Set<number>>(new Set());
 
   const [proofJson, setProofJson] = useState<any | null>(null);
@@ -157,6 +167,7 @@ export default function App() {
     setState({ safeCount: 0, multiplier: 1.0, boom: false });
     setIsActive(true);
     setOpenedTiles(new Set());
+    setPickedTiles(new Set());
     setRevealedRows(new Set());
     setProofJson(null);
 
@@ -224,6 +235,8 @@ export default function App() {
     const key = `${row}-${col}`;
     if (openedTiles.has(key)) return;
 
+    setPickedTiles((prev) => new Set(prev).add(key));
+
     const newOpened = new Set(openedTiles);
     newOpened.add(key);
     setOpenedTiles(newOpened);
@@ -244,6 +257,9 @@ export default function App() {
       setIsActive(false);
       setStatusMsg("💥 BOOM! You hit a bomb and lost.");
       setProofJson({ board: board.flat(), seed, player: account, boardSize: board.flat().length });
+
+      // 👉 mở toàn bộ board
+      setOpenedTiles(openAllBoard(board));
     } else {
       if (row > 0) {
         const newOpenedRow = new Set(openedTiles);
@@ -260,6 +276,9 @@ export default function App() {
         setIsActive(false);
         setStatusMsg("🏆 Congratulations! You won the game!");
         setProofJson({ board: board.flat(), seed, player: account, boardSize: board.flat().length });
+
+        // 👉 mở toàn bộ board khi win
+        setOpenedTiles(openAllBoard(board));
       }
     }
   };
@@ -291,9 +310,9 @@ export default function App() {
             100% { transform: translateX(0); }
           }
           @keyframes glowPath {
-            0% { box-shadow: 0 0 0px rgba(52,152,219,0.0); }
-            50% { box-shadow: 0 0 12px rgba(52,152,219,0.9); }
-            100% { box-shadow: 0 0 0px rgba(52,152,219,0.0); }
+            0% { box-shadow: 0 0 0px rgba(241,196,15,0.0); }
+            50% { box-shadow: 0 0 15px rgba(241,196,15,0.9); }
+            100% { box-shadow: 0 0 0px rgba(241,196,15,0.0); }
           }
         `}
       </style>
@@ -402,6 +421,7 @@ export default function App() {
                 const key = `${r}-${c}`;
                 const locked = !revealedRows.has(r);
                 const opened = openedTiles.has(key);
+                const picked = pickedTiles.has(key);
 
                 let bg = "#2b2b2b";
                 let content = "";
@@ -412,12 +432,17 @@ export default function App() {
                 if (opened) {
                   bg = cell === 1 ? "#c0392b" : "#27ae60";
                   content = cell === 1 ? "💀" : "";
-                  border = cell === 1 ? "2px solid #e67e22" : "2px solid #3498db";
-                  boxShadow =
-                    cell === 1
-                      ? "0 0 10px rgba(230,126,34,0.8)"
-                      : "0 0 10px rgba(52,152,219,0.8)";
-                  anim = !isActive ? "glowPath 1.2s infinite" : "none";
+                  if (picked) {
+                    border = "2px solid #f1c40f";
+                    boxShadow = "0 0 15px rgba(241,196,15,0.9)";
+                    anim = "glowPath 1.2s infinite";
+                  } else {
+                    border = cell === 1 ? "2px solid #e67e22" : "2px solid #3498db";
+                    boxShadow =
+                      cell === 1
+                        ? "0 0 10px rgba(230,126,34,0.8)"
+                        : "0 0 10px rgba(52,152,219,0.8)";
+                  }
                 }
 
                 const activeRow = revealedRows.size > 0 ? Math.min(...revealedRows) : -1;
