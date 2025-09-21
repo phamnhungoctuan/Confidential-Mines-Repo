@@ -9,14 +9,6 @@ verifiable**.
   <img src="./mines.png" alt="Game Flow" width="250"/>
 </p>
 
-```mermaid
-flowchart LR
-    U[👤 User] --> W[🔑 Worker<br/>Encrypt Board]
-    W --> C[⛓ Smart Contract<br/>FHE Commitment]
-    C --> V[🔍 Verify Server<br/>Check Proof]
-    V --> U
-```
-
 ## ✨ Features
 
 - 🕹 **Minesweeper-style gameplay** — pick safe tiles, avoid bombs, climb to the top.
@@ -27,59 +19,118 @@ flowchart LR
 
 ---
 
-## 🔒 Security & Provably-Fair Mechanism
+Ok 👍 mình sẽ đóng gói lại đoạn trên thành format chuẩn README.md để bạn có thể bỏ thẳng vào repo Confidential Mines:
 
-Unlike traditional Web3 games where servers can manipulate outcomes, **Confidential Mines** leverages **Zama’s FHEVM**:
+---
 
-1. **Encrypted Game State**
-   - The board (safe tiles + bombs) is encrypted using **FHE** before deployment.
-   - Even the blockchain and miners cannot see the contents.
+# 🎮 Confidential Mines – Game Flow & Provably-Fair Mechanism
 
-2. **On-chain Commitment**
-   - When a player starts a game, the encrypted board is **committed on-chain**.
-   - This ensures no one (not even the developer) can alter the board after creation.
+```mermaid
+flowchart LR
+    U[👤 User] --> W[🔑 Worker<br/>Encrypt Board]
+    W --> C[⛓ Smart Contract<br/>FHE Commitment]
+    C --> G[🎮 Gameplay<br/>Pick Tiles]
+    G --> R[🔑 Reveal Seed + Board]
+    R --> V[🔍 Verify Server<br/>Check Proof]
+    V --> U
+```
 
-3. **Provably Fair Verification**
-   - At the end of the game (win or lose), a proof JSON is generated.
-   - Anyone can open the **Verify Server** to check that the revealed board matches the original encrypted commitment.
+Unlike traditional Web3 games where servers can manipulate outcomes, **Confidential Mines** leverages **Zama’s FHEVM**
+to guarantee both **privacy** and **fairness**.
 
-> ⚡ **Contract logic requires FHE ciphertext to function.**  
-> Without valid encrypted inputs, the contract cannot progress the game state. This makes FHE not just an add-on, but
-> the **core trust mechanism** of the protocol.
+---
+
+## 🔑 Game Flow
+
+### 1. Encrypted Game State
+
+- The board (safe tiles + bombs) is encrypted using **FHE** before deployment.
+- Even the blockchain and miners cannot see the contents.
+
+### 2. On-chain Commitment
+
+- When a player starts a game, the encrypted board is **committed on-chain**.
+- This ensures no one (not even the developer) can alter the board after creation.
+
+### 3. Gameplay
+
+- The player interacts with the contract by picking **encrypted tiles**.
+- The contract only accepts **valid ciphertext inputs**.
+
+```solidity
+function createGame(
+    bytes[] calldata encryptedTiles,
+    bytes calldata inputProof,
+    bytes32 commitHash,
+    uint8 boardSize
+) external {
+    require(encryptedTiles.length == boardSize, "Invalid board size");
+    // FHE-specific check
+    require(_isValidCiphertext(encryptedTiles, inputProof), "Invalid FHE input");
+    ...
+}
+```
+
+### 4. Provably-Fair Reveal
+
+- At the end of the game (win or lose), the player reveals their **seed and board**:
+
+```ts
+await contract.revealSeed(gameId, seed);
+await contract.revealGame(gameId, board);
+```
+
+- The contract ties the revealed data back to the original commit hash.
+
+### 5. Proof JSON
+
+- Each game generates a **proof JSON** (handles + inputProof + commitHash).
+- Players can download this proof from transaction logs or contract events.
+
+```json
+{
+  "encryptedTiles": ["0xabc...", "0xdef..."],
+  "inputProof": "0x123...",
+  "commitHash": "0x456..."
+}
+```
+
+### 6. Independent Verification
+
+- Anyone can run the **Verify Server** to confirm fairness:
+
+```bash
+npm run verify -- --proof proof.json
+```
+
+- The server reconstructs the game and checks that the revealed board matches the encrypted on-chain commitment.
+
+---
 
 ## 🔐 Why FHE Matters
 
 Traditional Web3 games often face two major problems:
 
 1. **Server-side trust**
-   - Game logic may run off-chain, leaving players to _trust the developer_ that results aren’t manipulated.
-   - Even if some state is on-chain, sensitive data (like the bomb positions in Minesweeper) must be hidden off-chain,
-     breaking transparency.
+   - Game logic may run off-chain, forcing players to trust the developer.
+   - Sensitive state (like bomb positions) often remains hidden off-chain, breaking transparency.
 
 2. **Limited fairness guarantees**
-   - Randomness can be challenged (e.g., weak RNG, biased seeds).
-   - Players cannot always verify that what they see matches the committed state.
+   - RNG can be weak or biased.
+   - Players cannot always verify that the revealed state matches the committed one.
 
 ---
 
-### 🚀 Confidential Mines with FHEVM
+## 🚀 Confidential Mines with FHEVM
 
-- **Encrypted state on-chain** — the game board is encrypted with FHE and committed directly into the contract.
-- **Privacy + verifiability** — no one (not even miners or developers) can peek at the board, yet the final outcome can
-  still be **independently verified**.
-- **Mandatory encryption** —
-  > ⚡ _Contract logic requires FHE ciphertext to function._  
-  > Without valid encrypted inputs, the game cannot progress. This ensures FHE is the **core trust mechanism** of the
-  > protocol.
-- **Provably fair by design** — the Verify Server proves that the revealed board matches the encrypted on-chain
+- **Encrypted state on-chain** — game boards are encrypted with FHE and committed directly into the contract.
+- **Privacy + verifiability** — no one (not even miners or developers) can peek at the board, yet outcomes are still
+  verifiable.
+- **Mandatory encryption** — contract logic only works with ciphertext.
+- **Provably fair by design** — the Verify Server proves that the revealed board matches the original encrypted
   commitment.
 
----
-
-✨ With **Zama’s FHEVM**, Confidential Mines demonstrates a future of Web3 gaming where **privacy, fairness, and
-decentralization** are not in conflict — they work together.
-
----
+## ✨ With **Zama’s FHEVM**, Confidential Mines demonstrates a future of Web3 gaming where **privacy, fairness, and decentralization** work hand in hand.
 
 ## 🔑 Encryption via Worker
 
@@ -194,13 +245,20 @@ If verification fails:
 npm install
 ```
 
-### 2. Run locally
+### 2. Set up environment variables
 
 ```bash
-npm run dev
+npx hardhat vars set PRIVATE_KEY
 ```
 
-### 3. Deploy contracts
+### 3. Compile and test
+
+```
+npx hardhat clean && npx hardhat compile
+npx hardhat test
+```
+
+### 4. Deploy contracts
 
 ```bash
 # Local FHEVM-ready node
@@ -210,7 +268,7 @@ npx hardhat node
 npx hardhat deploy --network localhost
 ```
 
-### 4. Play on Sepolia
+### 5. Play on Sepolia
 
 ```bash
 npx hardhat deploy --network sepolia

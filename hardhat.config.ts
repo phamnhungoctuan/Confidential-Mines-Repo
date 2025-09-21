@@ -9,12 +9,9 @@ import type { HardhatUserConfig } from "hardhat/config";
 import { vars } from "hardhat/config";
 import "solidity-coverage";
 import "./tasks/accounts";
-import * as dotenv from "dotenv";
-dotenv.config();
-const PRIVATE_KEY: string = process.env.PRIVATE_KEY || "";
 
 // Run 'npx hardhat vars setup' to see the list of variables that need to be set
-
+const PRIVATE_KEY: string = vars.get("PRIVATE_KEY", "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
 const MNEMONIC: string = vars.get("MNEMONIC", "test test test test test test test test test test test junk");
 const INFURA_API_KEY: string = vars.get("INFURA_API_KEY", "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
 
