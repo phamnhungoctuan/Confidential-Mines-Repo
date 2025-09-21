@@ -97,13 +97,7 @@ await contract.revealGame(gameId, board);
 
 ### 6. Independent Verification
 
-- Anyone can run the **Verify Server** to confirm fairness:
-
-```bash
-npm run verify -- --proof proof.json
-```
-
-- The server reconstructs the game and checks that the revealed board matches the encrypted on-chain commitment.
+- Anyone can run the **Verify Server** to confirm fairness
 
 ---
 
