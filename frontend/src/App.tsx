@@ -246,15 +246,13 @@ export default function App() {
       setProofJson({ board: board.flat(), seed, player: account, boardSize: board.flat().length });
     } else {
       if (row > 0) {
-        // 🔹 Hiện tất cả ô của hàng hiện tại
         const newOpenedRow = new Set(openedTiles);
         board[row].forEach((_, c) => newOpenedRow.add(`${row}-${c}`));
         setOpenedTiles(newOpenedRow);
 
-        // 🔹 Mở khóa hàng trên, khóa lại hàng hiện tại
         setRevealedRows((prev) => {
           const updated = new Set(prev);
-          updated.delete(row); // khoá lại hàng vừa thoát
+          updated.delete(row);
           updated.add(row - 1);
           return updated;
         });
@@ -278,6 +276,28 @@ export default function App() {
         padding: 24,
       }}
     >
+      <style>
+        {`
+          @keyframes pulse { 
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+          }
+          @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+          }
+          @keyframes glowPath {
+            0% { box-shadow: 0 0 0px rgba(52,152,219,0.0); }
+            50% { box-shadow: 0 0 12px rgba(52,152,219,0.9); }
+            100% { box-shadow: 0 0 0px rgba(52,152,219,0.0); }
+          }
+        `}
+      </style>
+
       <div style={{ width: "100%", maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
         <h1 style={{ fontSize: 48, margin: "12px 0" }}>
           🎮 <span style={{ fontWeight: 800 }}>Confidential Mines</span>
@@ -373,43 +393,31 @@ export default function App() {
             alignItems: "center",
             justifyContent: "center",
             marginTop: 32,
-            animation: state.boom ? "shake 0.5s" : "",
+            animation: state.boom && !isActive ? "shake 0.5s" : "",
           }}
         >
           {board.map((row, r) => (
             <div key={r} style={{ display: "flex", gap: 12, marginBottom: 8 }}>
               {row.map((cell, c) => {
                 const key = `${r}-${c}`;
-                let bg = "#2b2b2b";
-                let content = "";
                 const locked = !revealedRows.has(r);
                 const opened = openedTiles.has(key);
 
+                let bg = "#2b2b2b";
+                let content = "";
                 let border = "2px solid transparent";
                 let boxShadow = "none";
+                let anim = "none";
 
-                if (state.boom) {
-                  bg = cell === 1 ? "#c0392b" : "#27ae60"; // màu đậm hơn
+                if (opened) {
+                  bg = cell === 1 ? "#c0392b" : "#27ae60";
                   content = cell === 1 ? "💀" : "";
-                  if (opened) {
-                    if (cell === 1) {
-                      border = "2px solid #e67e22"; // đỏ cam
-                      boxShadow = "0 0 10px rgba(230,126,34,0.8)";
-                    } else {
-                      border = "2px solid #3498db"; // xanh dương
-                      boxShadow = "0 0 10px rgba(52,152,219,0.8)";
-                    }
-                  }
-                } else if (opened) {
-                  bg = cell === 1 ? "#c0392b" : "#27ae60"; // màu đậm hơn
-                  content = cell === 1 ? "💀" : "";
-                  if (cell === 1) {
-                    border = "2px solid #e67e22"; // đỏ cam
-                    boxShadow = "0 0 10px rgba(230,126,34,0.8)";
-                  } else {
-                    border = "2px solid #3498db"; // xanh dương
-                    boxShadow = "0 0 10px rgba(52,152,219,0.8)";
-                  }
+                  border = cell === 1 ? "2px solid #e67e22" : "2px solid #3498db";
+                  boxShadow =
+                    cell === 1
+                      ? "0 0 10px rgba(230,126,34,0.8)"
+                      : "0 0 10px rgba(52,152,219,0.8)";
+                  anim = !isActive ? "glowPath 1.2s infinite" : "none";
                 }
 
                 const activeRow = revealedRows.size > 0 ? Math.min(...revealedRows) : -1;
@@ -434,7 +442,10 @@ export default function App() {
                       cursor: locked || state.boom || opened ? "not-allowed" : "pointer",
                       userSelect: "none",
                       transition: "background 0.3s, box-shadow 0.3s, border 0.3s",
-                      animation: !opened && !state.boom && r === activeRow ? "pulse 1.5s infinite" : "none",
+                      animation:
+                        !opened && !state.boom && r === activeRow
+                          ? "pulse 1.5s infinite"
+                          : anim,
                       border,
                       boxShadow,
                     }}
