@@ -1,5 +1,3 @@
-import React from "react";
-
 export default function VerifyModal({ gameId, show, decryptedRows, verifying, verifyError, closeVerifyModal }: any) {
   if (!show) return null;
 
@@ -48,7 +46,7 @@ export default function VerifyModal({ gameId, show, decryptedRows, verifying, ve
           ) : null}
         </div>
 
-        <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end" }}>
+        <div style={{ marginTop: 12, display: "flex", justifyContent: "center" }}>
           <button onClick={closeVerifyModal} style={{ padding: "8px 12px", borderRadius: 8, border: "none", background: "#777" }}>
             Close
           </button>

@@ -1,7 +1,6 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { ethers, fhevm } from "hardhat";
 import { expect } from "chai";
-import { FhevmType } from "@fhevm/hardhat-plugin";
 import { ConfidentialMines, ConfidentialMines__factory } from "../types";
 
 type Signers = {
@@ -15,15 +14,26 @@ async function deployFixture() {
   return { mines, minesAddress: await mines.getAddress() };
 }
 
-// Helper: encrypt full board in one proof
-async function encryptBoard(board: number[], contract: string, user: string) {
-  const enc = await fhevm.createEncryptedInput(contract, user);
-  board.forEach((v) => enc.add32(v));
-  const res = await enc.encrypt();
-  return { encryptedTiles: res.handles, proof: res.inputProof };
+// Helper: pack board into uint64
+function packBoard(board: number[]): bigint {
+  let packed = 0n;
+  for (let i = 0; i < board.length; i++) {
+    if (board[i] === 1) {
+      packed |= (1n << BigInt(i));
+    }
+  }
+  return packed;
 }
 
-describe("ConfidentialMines", () => {
+// Encrypt packed board (single euint64)
+async function encryptPackedBoard(packed: bigint, contract: string, user: string) {
+  const enc = await fhevm.createEncryptedInput(contract, user);
+  enc.add64(packed); // single uint64
+  const res = await enc.encrypt();
+  return { encryptedPackedBoard: res.handles[0], proof: res.inputProof };
+}
+
+describe("ConfidentialMines (bit-packed)", () => {
   let signers: Signers;
   let mines: ConfidentialMines;
   let minesAddress: string;
@@ -41,113 +51,77 @@ describe("ConfidentialMines", () => {
     ({ mines, minesAddress } = await deployFixture());
   });
 
-  it("should create game, pick a SAFE tile, cashout and reveal", async () => {
+  it("should create game, pick a SAFE tile, end and reveal seed", async () => {
     const board = [0, 0, 1, 0, 0];
     const seed = 123456;
+    const packed = packBoard(board);
+
     const commitHash = ethers.keccak256(
       ethers.AbiCoder.defaultAbiCoder().encode(
         ["uint256", "address", "uint8"],
         [seed, signers.alice.address, board.length],
       ),
     );
+    const ciphertextCommit = ethers.keccak256("0xdeadbeef"); // mock ciphertext commitment
 
-    const { encryptedTiles, proof } = await encryptBoard(board, minesAddress, signers.alice.address);
+    const { encryptedPackedBoard, proof } = await encryptPackedBoard(packed, minesAddress, signers.alice.address);
 
     const receipt = await (
-      await mines.connect(signers.alice).createGame(encryptedTiles, proof, commitHash, board.length)
+      await mines.connect(signers.alice).createGame(
+        encryptedPackedBoard,
+        proof,
+        commitHash,
+        ciphertextCommit,
+        board.length
+      )
     ).wait();
-    const event = receipt?.logs.find((l) => l.fragment?.name === "GameCreated");
-    const gameId = event?.args?.[0];
-    expect(gameId).to.not.be.undefined;
+
+    const gameId = receipt?.logs.find((l) => l.fragment?.name === "GameCreated")?.args?.[0];
 
     // pick SAFE at index 0
-    await expect(mines.connect(signers.alice).pickTile(gameId, 0)).to.not.be.reverted;
+    await mines.connect(signers.alice).pickTile(gameId, 0);
     expect(await mines.getOpenedCount(gameId)).to.eq(1);
 
-    // cashOut
-    await expect(mines.connect(signers.alice).cashOut(gameId)).to.not.be.reverted;
-    expect(await mines.getState(gameId)).to.eq(2); // CashedOut
+    // end game (cashout/boom off-chain)
+    await mines.connect(signers.alice).endGame(gameId);
+    expect(await mines.getState(gameId)).to.eq(1); // Ended enum = 1
 
-    // revealSeed + revealGame
-    await expect(mines.connect(signers.alice).revealSeed(gameId, seed)).to.not.be.reverted;
-    expect(await mines.isSeedRevealed(gameId)).to.eq(true);
-
-    await expect(mines.connect(signers.alice).revealGame(gameId, board)).to.not.be.reverted;
-  });
-
-  it("should play SAFE → SAFE → BOMB and end as Boom", async () => {
-    const board = [0, 0, 1, 0];
-    const seed = 999999;
-    const commitHash = ethers.keccak256(
-      ethers.AbiCoder.defaultAbiCoder().encode(
-        ["uint256", "address", "uint8"],
-        [seed, signers.alice.address, board.length],
-      ),
-    );
-    const { encryptedTiles, proof } = await encryptBoard(board, minesAddress, signers.alice.address);
-    const receipt = await (
-      await mines.connect(signers.alice).createGame(encryptedTiles, proof, commitHash, board.length)
-    ).wait();
-    const gameId = receipt?.logs.find((l) => l.fragment?.name === "GameCreated")?.args?.[0];
-
-    // SAFE 0
-    await mines.connect(signers.alice).pickTile(gameId, 0);
-    // SAFE 1
-    await mines.connect(signers.alice).pickTile(gameId, 1);
-    // BOMB 2
-    await mines.connect(signers.alice).pickTile(gameId, 2);
-    // simulate end as Boom
-    await mines.connect(signers.alice).endAsBoom(gameId);
-    expect(await mines.getState(gameId)).to.eq(1); // Boom
-
-    // reveal seed must match commit
+    // reveal seed (must match commit)
     await expect(mines.connect(signers.alice).revealSeed(gameId, seed)).to.not.be.reverted;
   });
 
-  it("should increase multiplier with multiple SAFE picks", async () => {
-    const board = [0, 0, 0, 0];
-    const seed = 42;
-    const commitHash = ethers.keccak256(
-      ethers.AbiCoder.defaultAbiCoder().encode(
-        ["uint256", "address", "uint8"],
-        [seed, signers.alice.address, board.length],
-      ),
-    );
-    const { encryptedTiles, proof } = await encryptBoard(board, minesAddress, signers.alice.address);
-    const receipt = await (
-      await mines.connect(signers.alice).createGame(encryptedTiles, proof, commitHash, board.length)
-    ).wait();
-    const gameId = receipt?.logs.find((l) => l.fragment?.name === "GameCreated")?.args?.[0];
-
-    // pick 3 SAFE tiles
-    for (let i = 0; i < 3; i++) {
-      await mines.connect(signers.alice).pickTile(gameId, i);
-      const g = await mines.getMultiplier(gameId);
-      const raw = await fhevm.userDecryptEuint(FhevmType.euint32, g, minesAddress, signers.alice);
-      console.log(`📈 Multiplier after ${i + 1} picks:`, Number(raw) / 1000);
-      expect(Number(raw)).to.be.greaterThan(1000);
-    }
-  });
-
-  it("should reject revealSeed with wrong seed", async () => {
+  it("should reject wrong seed", async () => {
     const board = [0, 1, 0];
     const seed = 111;
     const wrongSeed = 222;
+    const packed = packBoard(board);
+
     const commitHash = ethers.keccak256(
       ethers.AbiCoder.defaultAbiCoder().encode(
         ["uint256", "address", "uint8"],
         [seed, signers.alice.address, board.length],
       ),
     );
-    const { encryptedTiles, proof } = await encryptBoard(board, minesAddress, signers.alice.address);
+    const ciphertextCommit = ethers.keccak256("0x1234");
+
+    const { encryptedPackedBoard, proof } = await encryptPackedBoard(packed, minesAddress, signers.alice.address);
+
     const receipt = await (
-      await mines.connect(signers.alice).createGame(encryptedTiles, proof, commitHash, board.length)
+      await mines.connect(signers.alice).createGame(
+        encryptedPackedBoard,
+        proof,
+        commitHash,
+        ciphertextCommit,
+        board.length
+      )
     ).wait();
+
     const gameId = receipt?.logs.find((l) => l.fragment?.name === "GameCreated")?.args?.[0];
 
     await mines.connect(signers.alice).pickTile(gameId, 0);
-    await mines.connect(signers.alice).endAsBoom(gameId);
+    await mines.connect(signers.alice).endGame(gameId);
 
+    // wrong seed
     await expect(mines.connect(signers.alice).revealSeed(gameId, wrongSeed)).to.be.revertedWith("Commit mismatch");
   });
 });

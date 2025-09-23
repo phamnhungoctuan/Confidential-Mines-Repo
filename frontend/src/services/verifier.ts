@@ -64,7 +64,7 @@ export async function handleVerifyClick(gameId: number, setShowVerifyModal: any,
   }
 }
 
-export async function verifyGame(prepared: any, setDecryptedFlatBoard: any, setDecryptedRows: any, setStatusMsg: any, setVerifyError: any, setVerifying: any, board: number[][], ROWS: number) {
+export async function verifyGame(prepared: any, setDecryptedFlatBoard: any, setDecryptedRows: any, setStatusMsg: any, setVerifyError: any, setVerifying: any, board: number[][]) {
   setVerifying(true);
   setVerifyError(null);
   setDecryptedFlatBoard(null);

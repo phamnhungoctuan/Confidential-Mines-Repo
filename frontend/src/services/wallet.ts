@@ -1,5 +1,3 @@
-import { ethers } from "ethers";
-
 export async function connectWallet(setAccount: (a: string) => void) {
   if (!window.ethereum) {
     alert("⚠️ MetaMask not detected");

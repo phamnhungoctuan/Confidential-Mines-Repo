@@ -191,8 +191,7 @@ export default function App() {
                       () => {},
                       setVerifyError,
                       setVerifying,
-                      board,
-                      6
+                      board
                     )
                 )
               }
