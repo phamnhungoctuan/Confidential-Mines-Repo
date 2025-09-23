@@ -11,13 +11,9 @@ Players enjoy a **Minesweeper-inspired challenge** while knowing every move is *
 
 ## ✨ Features
 
-* 🕹 **Minesweeper gameplay** — pick safe tiles, avoid bombs.
-* 🔐 **Privacy by design** — boards are encrypted with **Fully Homomorphic Encryption (FHE)**.
-* ✅ **Provably fair** — seeds + commitments guarantee integrity.
-* 🌐 **Decentralized** — runs fully on Ethereum Sepolia testnet.
-* 🦊 **MetaMask integration** — connect and play instantly.
-
----
+* **Minesweeper gameplay** — pick safe tiles, avoid bombs.
+* **Privacy by design** — boards are encrypted with **Fully Homomorphic Encryption (FHE)**.
+* **Provably fair** — seeds + commitments guarantee integrity.
 
 ## 🌐 Demo
 

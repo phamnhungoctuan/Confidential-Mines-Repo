@@ -43,18 +43,21 @@ function packBoard(board: number[]): bigint {
 }
 
 /**
- * 🚀 Encrypt packed board in worker.
+ * Encrypt packed board in worker.
  */
+//  Using a Web Worker to avoid blocking the main thread during encryption.
 async function encryptBoardInWorker(packedBoard: bigint, contract: string, user: string) {
   return new Promise<{ encryptedBoard: string; inputProof: string }>((resolve, reject) => {
     const worker = new Worker("/encryptWorker.js", { type: "classic" });
 
+    //  Listen for messages from the worker
     worker.onmessage = (e) => {
       if (e.data.error) reject(e.data.error);
       else resolve(e.data);
       worker.terminate();
     };
 
+    //  Send data to the worker
     worker.postMessage({
       packedBoard: packedBoard.toString(),
       contractAddress: contract,
@@ -64,7 +67,7 @@ async function encryptBoardInWorker(packedBoard: bigint, contract: string, user:
   });
 }
 
-/** 🎲 Create game */
+/** Create game */
 export async function createGame(board: number[], seed: number) {
   console.log("🟢 createGame...");
   await window.ethereum.request({ method: "eth_requestAccounts" });
@@ -88,9 +91,10 @@ export async function createGame(board: number[], seed: number) {
     ),
   );
 
-  // TODO: generate ciphertextCommit = keccak(rawCiphertext) or Merkle root off-chain
+  //  Commit to the ciphertext to prevent tampering
   const ciphertextCommit = ethers.keccak256(encryptedBoard);
 
+  // Send transaction
   const tx = await contract.createGame(
     encryptedBoard,
     inputProof,
@@ -101,7 +105,7 @@ export async function createGame(board: number[], seed: number) {
   return tx;
 }
 
-/** 🎮 Local simulation for testing */
+/** Local simulation for testing `pickTile` logic */
 export function pickTileLocal(board: number[], index: number, state: { safeCount: number; multiplier: number }) {
   const tile = board[index];
   if (tile === 1) {
@@ -114,29 +118,27 @@ export function pickTileLocal(board: number[], index: number, state: { safeCount
   return { safeCount: newSafeCount, multiplier: newMultiplier, boom: false };
 }
 
-/** 💰 End game (cashout or boom, decided off-chain) */
 export async function endGame(gameId: number) {
-  console.log("🏁 endGame");
+  console.log("endGame");
   const contract = await getContract();
   const tx = await contract.endGame(gameId);
   await tx.wait();
-  console.log("✅ endGame done");
+  console.log("endGame done");
 }
 
-/** 🔑 Reveal seed for provably-fair check */
+/** Reveal seed for provably-fair check */
 export async function revealSeed(gameId: number, seed: number) {
-  console.log("🔑 revealSeed");
+  console.log("revealSeed");
   const contract = await getContract();
   const tx = await contract.revealSeed(gameId, seed);
   await tx.wait();
-  console.log("✅ revealSeed done");
 }
 
-/** 👓 Allow verifier to decrypt the board after end */
+/** Allow verifier to decrypt the board after end */
 export async function allowVerifier(gameId: number, verifier: string) {
-  console.log("👓 allowVerifier");
+  console.log("allowVerifier");
   const contract = await getContract();
   const tx = await contract.allowVerifier(gameId, verifier);
   await tx.wait();
-  console.log("✅ verifier allowed");
+  console.log("verifier allowed");
 }

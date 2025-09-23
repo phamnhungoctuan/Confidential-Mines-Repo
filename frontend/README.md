@@ -47,7 +47,7 @@ Open `.env` and update values as needed:
 
 ```bash
 VITE_CONTRACT_ADDRESS="0x3115579c839E357032dA49C4B3Bc33127eca474f"
-VITE_TX_HASH_URL="https://sepolia.etherscan.io/tx/"
+VITE_VERIFY_SERVER=https://confidential-mines-verify.vercel.app/api/verify
 ```
 
 ---
@@ -91,11 +91,3 @@ Runs ESLint to check for code quality and style issues.
 - **TypeScript**
 - **FHEVM SDK**
 - **ESLint**
-
----
-
-## 🎯 Gameplay Overview
-
-- **Confidential Board**: Bombs are encrypted, ensuring no one can cheat.
-- **Encrypted Inputs**: Each move is encrypted before being sent onchain.
-- **Provable Fairness**: Anyone can verify the game logic without revealing the bomb positions.

@@ -1,5 +1,6 @@
 // api/verify.js
 // Vercel serverless function for fetching ciphertexts + metadata from ConfidentialMines contract
+// I will this file to deploy to Vercel as a serverless function, so it can be called from the frontend
 
 import { readFile } from "fs/promises";
 import path from "path";
@@ -50,7 +51,7 @@ export default async function handler(req, res) {
     const provider = new ethers.JsonRpcProvider(RPC_URL);
     const contract = new ethers.Contract(CONTRACT_ADDRESS, ConfidentialMinesAbi.abi, provider);
 
-    // Gọi public mapping getter games(gameId)
+    // Call public mapping getter games(gameId)
     let g;
     try {
       g = await contract.games(gameId);
@@ -83,7 +84,6 @@ export default async function handler(req, res) {
       return res.status(400).send("No ciphertext found for this game");
     }
 
-    // Payload trả về cho frontend
     const payload = {
       ciphertexts: [encryptedBoard],
       contractAddress: CONTRACT_ADDRESS,

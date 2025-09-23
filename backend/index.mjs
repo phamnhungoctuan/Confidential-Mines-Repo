@@ -1,4 +1,9 @@
 // backend/index.mjs
+// This is a simple Express server to provide an endpoint for verifying and fetching
+// the encrypted board from the ConfidentialMines smart contract.
+// Just use for testing on localhost, not for production.
+// For production, use the Vercel serverless function in api/verify.js
+
 import express from "express";
 import cors from "cors";
 import { ethers } from "ethers";
@@ -19,6 +24,7 @@ if (!CONTRACT_ADDRESS || !RPC_URL) {
   throw new Error("Missing CONTRACT_ADDRESS or RPC_URL in .env");
 }
 
+// Recursively convert any BigInt in the object to string, for JSON serialization
 function convertBigInt(value) {
   if (typeof value === "bigint") return value.toString();
   if (Array.isArray(value)) return value.map(convertBigInt);
@@ -67,13 +73,6 @@ app.post("/verify", async (req, res) => {
 
     const boardSize = boardSizeRaw !== undefined ? Number(boardSizeRaw) : null;
     const openedCount = openedCountRaw !== undefined ? Number(openedCountRaw) : null;
-
-    console.log("[/verify] gameId:", gameId);
-    console.log("[/verify] player:", String(player));
-    console.log("[/verify] boardSize:", boardSize);
-    console.log("[/verify] ciphertext handle:", encryptedBoard);
-    console.log("[/verify] ciphertextCommit (onchain):", ciphertextCommit);
-    console.log("[/verify] commitHash (onchain):", commitHash);
 
     if (!encryptedBoard) {
       return res.status(400).send("No ciphertext found for this game");
