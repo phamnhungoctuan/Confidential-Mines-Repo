@@ -5,6 +5,7 @@ const VERIFY_SERVER =
   import.meta.env.VITE_VERIFY_SERVER ||
   "https://confidential-bomb-verify.vercel.app/api/verify";
 
+// Handles the "Verify Fairness" button click: fetches ciphertexts, prepares EIP712, and calls verifyGame
 export async function handleVerifyClick(gameId: number, setShowVerifyModal: any, setStatusMsg: any, setVerifyError: any, setCiphertextMatch: any, verifyGame: any) {
   try {
     setVerifyError(null);
@@ -64,6 +65,7 @@ export async function handleVerifyClick(gameId: number, setShowVerifyModal: any,
   }
 }
 
+//  Performs the actual verification: calls relayer to decrypt, unpacks and sets decrypted board state
 export async function verifyGame(prepared: any, setDecryptedFlatBoard: any, setDecryptedRows: any, setStatusMsg: any, setVerifyError: any, setVerifying: any, board: number[][]) {
   setVerifying(true);
   setVerifyError(null);

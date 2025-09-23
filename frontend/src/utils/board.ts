@@ -1,3 +1,4 @@
+// Utility functions for board generation and manipulation
 export function generateBoard(rows: number, difficulty: "easy" | "medium" | "hard"): number[][] {
   const out: number[][] = [];
   for (let r = 0; r < rows; r++) {
@@ -17,6 +18,7 @@ export function generateBoard(rows: number, difficulty: "easy" | "medium" | "har
   return out;
 }
 
+//  Open all tiles on the board
 export function openAllBoard(board: number[][]) {
   const allTiles = new Set<string>();
   board.forEach((row, r) => row.forEach((_, c) => allTiles.add(`${r}-${c}`)));

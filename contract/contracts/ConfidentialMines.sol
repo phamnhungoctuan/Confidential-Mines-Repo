@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+// author: TuanPhamIT
 pragma solidity ^0.8.27;
 
 import { FHE, euint64, ebool, externalEuint64 } from "@fhevm/solidity/lib/FHE.sol";
@@ -41,7 +42,6 @@ contract ConfidentialMines is SepoliaConfig {
         bytes32 ciphertextCommit
     );
 
-    /// @dev `isBomb` is encrypted (ebool). No plaintext leakage on-chain.
     event TilePicked(
         uint256 indexed gameId,
         uint256 index,
@@ -53,9 +53,6 @@ contract ConfidentialMines is SepoliaConfig {
     event SeedRevealed(uint256 indexed gameId, uint256 seed);
     event VerifierAllowed(uint256 indexed gameId, address verifier);
 
-    // ------------------------------------------------------------------------
-    // 🟢 Creation
-    // ------------------------------------------------------------------------
     /// @notice Create a new game with a single encrypted ciphertext for the board.
     /// @param encryptedPackedBoard External handle of the packed board ciphertext (uint64).
     /// @param proof Batch input proof for FHE import.
@@ -95,12 +92,6 @@ contract ConfidentialMines is SepoliaConfig {
         emit GameCreated(gameId, msg.sender, boardSize, commitHash, ciphertextCommit);
     }
 
-    // ------------------------------------------------------------------------
-    // 🎮 Gameplay (bit extraction over euint64)
-    // ------------------------------------------------------------------------
-    /// @notice Pick a tile by index and emit encrypted result (safe/bomb).
-    /// @dev Extracts a single bit from the packed ciphertext using a plaintext mask.
-    ///      Prevents double-pick via plaintext bitmap (does not leak where the bombs are).
     function pickTile(uint256 gameId, uint256 index) external {
         Game storage g = games[gameId];
         require(g.state == State.Active, "Not active");
@@ -123,8 +114,6 @@ contract ConfidentialMines is SepoliaConfig {
         emit TilePicked(gameId, index, isBomb, g.openedCount);
     }
 
-    /// @notice End the game (cashout or boom decided off-chain after decryption).
-    /// @dev Frontend/backends call this once outcome is known off-chain (no plaintext on-chain).
     function endGame(uint256 gameId) external {
         Game storage g = games[gameId];
         require(msg.sender == g.player, "Not your game");
@@ -134,9 +123,6 @@ contract ConfidentialMines is SepoliaConfig {
         emit GameEnded(gameId, g.state);
     }
 
-    // ------------------------------------------------------------------------
-    // 🔍 Provably-fair: commit reveal + ciphertext audit at the end
-    // ------------------------------------------------------------------------
     /// @notice Reveal original seed to check commit integrity.
     /// @dev Contract recomputes keccak256(seed, player, boardSize).
     function revealSeed(uint256 gameId, uint256 seed) external {
@@ -151,7 +137,6 @@ contract ConfidentialMines is SepoliaConfig {
     }
 
     /// @notice Allow an external verifier to decrypt the packed board after the game ends.
-    /// @dev This enables a ciphertext-based audit without exposing data mid-game.
     function allowVerifier(uint256 gameId, address verifier) external {
         Game storage g = games[gameId];
         require(msg.sender == g.player, "Not your game");
@@ -163,7 +148,7 @@ contract ConfidentialMines is SepoliaConfig {
     }
 
     // ------------------------------------------------------------------------
-    // 👀 Views
+    // Views
     // ------------------------------------------------------------------------
     function getBoardSize(uint256 gameId) external view returns (uint8) {
         return games[gameId].boardSize;

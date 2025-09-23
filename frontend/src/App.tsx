@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { connectWallet, disconnectWallet } from "./services/wallet";
 import { shortAddr } from "./utils/format";
 import Board from "./components/Board";
@@ -8,6 +8,22 @@ import { useGame } from "./hooks/useGame";
 
 export default function App() {
   const [account, setAccount] = useState<string | null>(null);
+
+  // Auto-connect if already authorized
+  useEffect(() => {
+    (async () => {
+      if (window.ethereum) {
+        try {
+          const accounts = await window.ethereum.request({ method: "eth_accounts" });
+          if (accounts && accounts.length > 0) {
+            setAccount(accounts[0]);
+          }
+        } catch (err) {
+          console.error("❌ Failed to auto-connect:", err);
+        }
+      }
+    })();
+  }, []);
 
   const {
     gameId,
