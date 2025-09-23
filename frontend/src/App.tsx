@@ -196,9 +196,9 @@ export default function App() {
                 setVerifyLoading(true);
                 handleVerifyClick(
                   gameId,
-                  (show) => {
+                  (show: any) => {
                     setShowVerifyModal(show);
-                    if (show) setVerifyLoading(false); // chỉ tắt khi modal bật
+                    if (show) setVerifyLoading(false);
                   },
                   () => {},
                   setVerifyError,
@@ -261,6 +261,14 @@ export default function App() {
             style={{ color: "#bbb" }}
           >
             ZAMA
+          </a>
+          <a
+          href="https://github.com/phamnhungoctuan"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: "#bbb", textDecoration: "none" }}
+          >
+            🐙 https://github.com/phamnhungoctuan
           </a>
         </p>
       </footer>
