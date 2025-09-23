@@ -27,8 +27,26 @@ async function getContract() {
   return new ethers.Contract(CONTRACT_ADDRESS, ConfidentialMinesAbi.abi, signer);
 }
 
-async function encryptBoardInWorker(board: number[], contract: string, user: string) {
-  return new Promise<{ encryptedTiles: string[]; inputProof: string }>((resolve, reject) => {
+/**
+ * 🔢 Pack board (array of 0/1) into a uint64 bitmask.
+ * index 0 = least significant bit.
+ */
+function packBoard(board: number[]): bigint {
+  if (board.length > 64) throw new Error("Board too big for uint64");
+  let packed = 0n;
+  for (let i = 0; i < board.length; i++) {
+    if (board[i] === 1) {
+      packed |= (1n << BigInt(i));
+    }
+  }
+  return packed;
+}
+
+/**
+ * 🚀 Encrypt packed board in worker.
+ */
+async function encryptBoardInWorker(packedBoard: bigint, contract: string, user: string) {
+  return new Promise<{ encryptedBoard: string; inputProof: string }>((resolve, reject) => {
     const worker = new Worker("/encryptWorker.js", { type: "classic" });
 
     worker.onmessage = (e) => {
@@ -38,7 +56,7 @@ async function encryptBoardInWorker(board: number[], contract: string, user: str
     };
 
     worker.postMessage({
-      board,
+      packedBoard: packedBoard.toString(),
       contractAddress: contract,
       userAddress: user,
       sdkConfig,
@@ -46,6 +64,7 @@ async function encryptBoardInWorker(board: number[], contract: string, user: str
   });
 }
 
+/** 🎲 Create game */
 export async function createGame(board: number[], seed: number) {
   console.log("🟢 createGame...");
   await window.ethereum.request({ method: "eth_requestAccounts" });
@@ -55,22 +74,38 @@ export async function createGame(board: number[], seed: number) {
   const signerAddr = await signer.getAddress();
   const contract = await getContract();
 
+  // Pack board into uint64
+  const packed = packBoard(board);
+
   console.time("encryptBoard (worker)");
-  const { encryptedTiles, inputProof } = await encryptBoardInWorker(board, CONTRACT_ADDRESS, signerAddr);
+  const { encryptedBoard, inputProof } = await encryptBoardInWorker(packed, CONTRACT_ADDRESS, signerAddr);
   console.timeEnd("encryptBoard (worker)");
 
   const commitHash = ethers.keccak256(
-    ethers.AbiCoder.defaultAbiCoder().encode(["uint256", "address", "uint8"], [seed, signerAddr, board.length]),
+    ethers.AbiCoder.defaultAbiCoder().encode(
+      ["uint256", "address", "uint8"],
+      [seed, signerAddr, board.length],
+    ),
   );
 
-  const tx = await contract.createGame(encryptedTiles, inputProof, commitHash, board.length);
+  // TODO: generate ciphertextCommit = keccak(rawCiphertext) or Merkle root off-chain
+  const ciphertextCommit = ethers.keccak256(encryptedBoard);
+
+  const tx = await contract.createGame(
+    encryptedBoard,
+    inputProof,
+    commitHash,
+    ciphertextCommit,
+    board.length,
+  );
   return tx;
 }
 
+/** 🎮 Local simulation for testing */
 export function pickTileLocal(board: number[], index: number, state: { safeCount: number; multiplier: number }) {
   const tile = board[index];
   if (tile === 1) {
-    console.log("BOOM!");
+    console.log("💥 BOOM!");
     return { ...state, boom: true };
   }
   const newSafeCount = state.safeCount + 1;
@@ -79,21 +114,13 @@ export function pickTileLocal(board: number[], index: number, state: { safeCount
   return { safeCount: newSafeCount, multiplier: newMultiplier, boom: false };
 }
 
-/** 💰 Cashout */
-export async function cashOut(gameId: number) {
-  console.log("💰 cashOut");
+/** 💰 End game (cashout or boom, decided off-chain) */
+export async function endGame(gameId: number) {
+  console.log("🏁 endGame");
   const contract = await getContract();
-  const tx = await contract.cashOut(gameId);
+  const tx = await contract.endGame(gameId);
   await tx.wait();
-  console.log("✅ cashOut done");
-}
-
-export async function revealGame(gameId: number, board: number[]) {
-  console.log("📜 revealGame");
-  const contract = await getContract();
-  const tx = await contract.revealGame(gameId, board);
-  await tx.wait();
-  console.log("✅ revealGame done");
+  console.log("✅ endGame done");
 }
 
 /** 🔑 Reveal seed for provably-fair check */
@@ -103,4 +130,13 @@ export async function revealSeed(gameId: number, seed: number) {
   const tx = await contract.revealSeed(gameId, seed);
   await tx.wait();
   console.log("✅ revealSeed done");
+}
+
+/** 👓 Allow verifier to decrypt the board after end */
+export async function allowVerifier(gameId: number, verifier: string) {
+  console.log("👓 allowVerifier");
+  const contract = await getContract();
+  const tx = await contract.allowVerifier(gameId, verifier);
+  await tx.wait();
+  console.log("✅ verifier allowed");
 }

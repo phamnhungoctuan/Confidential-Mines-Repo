@@ -1,185 +1,170 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {FHE, euint32, ebool, externalEuint32} from "@fhevm/solidity/lib/FHE.sol";
-import {SepoliaConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
+import { FHE, euint64, ebool, externalEuint64 } from "@fhevm/solidity/lib/FHE.sol";
+import { SepoliaConfig } from "@fhevm/solidity/config/ZamaConfig.sol";
 
-/// @title ConfidentialMines
-/// @notice Provably-fair Minesweeper game powered by Zama's FHEVM.
-/// @dev All sensitive values (board tiles, multiplier) are stored as encrypted FHE types.
-///      The contract logic requires FHE ciphertexts to function — ensuring privacy + fairness.
+/// @title ConfidentialMines (Bit-Packed)
+/// @notice Minesweeper-like game using a single encrypted ciphertext for the whole board.
+/// @dev Each tile is 1 bit (0 = safe, 1 = bomb), packed into a uint64, then encrypted as euint64.
+///      This dramatically reduces storage and gas vs. an encrypted array of tiles.
+///      Board size must be <= 64. Designed for 30–40 tiles.
 contract ConfidentialMines is SepoliaConfig {
-    // --------- Game state enums ----------
-    /// @notice Lifecycle states of a game.
+    // --------- States ----------
     enum State {
-        Active, // Game ongoing
-        Boom, // Player hit a bomb
-        CashedOut // Player cashed out safely
+        Active,   // Game ongoing
+        Ended     // Game finished (by cashout or boom, decided off-chain)
     }
 
-    // --------- Game struct ----------
-    /// @notice Stores all on-chain encrypted state of a single game.
+    // --------- Game model ----------
     struct Game {
-        address player; // Owner of this game instance
-        uint8 boardSize; // Number of tiles in board (1D Minesweeper)
-        euint32[] board; // Encrypted tiles: 0 = safe, 1 = bomb
-        bytes32 commitHash; // Commitment: H(seed, player, boardSize)
-        uint32 openedCount; // Count of opened tiles (plaintext, not sensitive)
-        euint32 multiplier; // Encrypted multiplier (x1000), grows with safe picks
-        State state; // Current game state
-        bool seedRevealed; // True after player calls revealSeed() successfully
+        address player;            // Owner of this game instance
+        uint8 boardSize;           // Number of tiles (<= 64)
+        euint64 encryptedBoard;    // Bit-packed board: LSB is index 0
+        bytes32 commitHash;        // keccak256(seed, player, boardSize)
+        bytes32 ciphertextCommit;  // Commitment over raw ciphertext bytes (Merkle root or keccak)
+        uint32 openedCount;        // How many tiles opened (non-sensitive UX counter)
+        uint64 openedBitmap;       // Plain bitmap of opened tiles to prevent double-open
+        State state;               // Current state
     }
-
-    // --------- Constants ----------
-    uint32 public constant MULTIPLIER_BASE = 1000; // 1.00x multiplier (initial)
-    uint32 public constant MULTIPLIER_STEP = 1050; // Each safe tile multiplies by +5% (x1.05)
 
     // --------- Storage ----------
-    uint256 public gameCounter; // Global counter for game IDs
-    mapping(uint256 => Game) public games; // All active/ended games
+    uint256 public gameCounter;
+    mapping(uint256 => Game) public games;
 
     // --------- Events ----------
-    event GameCreated(uint256 indexed gameId, address indexed player, uint8 boardSize);
-    /// @dev Emits encrypted isBomb (ebool) -> does not leak actual plaintext tile.
-    event TilePicked(uint256 indexed gameId, uint256 index, ebool isBomb, uint32 openedCount, euint32 newMultiplier);
-    event GameEnded(uint256 indexed gameId, euint32 finalMultiplier, State state);
-    /// @dev Proof of fairness: user reveals their original seed.
+    event GameCreated(
+        uint256 indexed gameId,
+        address indexed player,
+        uint8 boardSize,
+        bytes32 commitHash,
+        bytes32 ciphertextCommit
+    );
+
+    /// @dev `isBomb` is encrypted (ebool). No plaintext leakage on-chain.
+    event TilePicked(
+        uint256 indexed gameId,
+        uint256 index,
+        ebool isBomb,
+        uint32 openedCount
+    );
+
+    event GameEnded(uint256 indexed gameId, State state);
     event SeedRevealed(uint256 indexed gameId, uint256 seed);
-    /// @dev Optional transparency: plaintext board can be emitted after end.
-    event GameRevealed(uint256 indexed gameId, uint32[] plainMap);
+    event VerifierAllowed(uint256 indexed gameId, address verifier);
 
     // ------------------------------------------------------------------------
-    // 🟢 Game Creation
+    // 🟢 Creation
     // ------------------------------------------------------------------------
-    /// @notice Starts a new encrypted Minesweeper game.
-    /// @param encryptedTiles Encrypted tiles as external handles (0=safe, 1=bomb).
-    /// @param proof Batch input proof for FHE encryption.
-    /// @param commitHash Commitment hash = keccak256(seed, msg.sender, boardSize).
-    /// @param boardSize Declared number of tiles (must match encryptedTiles.length).
-    /// @return gameId ID of the newly created game.
+    /// @notice Create a new game with a single encrypted ciphertext for the board.
+    /// @param encryptedPackedBoard External handle of the packed board ciphertext (uint64).
+    /// @param proof Batch input proof for FHE import.
+    /// @param commitHash keccak256(seed, msg.sender, boardSize).
+    /// @param ciphertextCommit Commitment (e.g., keccak or Merkle root) over raw ciphertext bytes at creation time.
+    /// @param boardSize Number of tiles (<= 64).
+    /// @return gameId Newly created game ID.
     function createGame(
-        externalEuint32[] calldata encryptedTiles,
+        externalEuint64 encryptedPackedBoard,
         bytes calldata proof,
         bytes32 commitHash,
+        bytes32 ciphertextCommit,
         uint8 boardSize
     ) external returns (uint256 gameId) {
-        require(boardSize > 0, "Invalid board size");
-        require(encryptedTiles.length == boardSize, "Board size mismatch");
+        require(boardSize > 0 && boardSize <= 64, "Invalid board size");
         require(commitHash != bytes32(0), "Empty commit");
+        require(ciphertextCommit != bytes32(0), "Empty ciphertextCommit");
 
-        // Load encrypted tiles into secure memory
-        euint32[] memory board = new euint32[](encryptedTiles.length);
-        for (uint256 i = 0; i < encryptedTiles.length; i++) {
-            board[i] = FHE.fromExternal(encryptedTiles[i], proof);
-            FHE.allowThis(board[i]); // Contract itself can compute with it
-        }
+        euint64 packed = FHE.fromExternal(encryptedPackedBoard, proof);
+        // Allow the contract to compute on the ciphertext
+        FHE.allowThis(packed);
+        // Allow the player to decrypt results derived from this ciphertext if needed
+        FHE.allow(packed, msg.sender);
 
-        // Initialize multiplier = 1.00x (encrypted)
-        euint32 startMul = FHE.asEuint32(MULTIPLIER_BASE);
-        FHE.allowThis(startMul);
-        FHE.allow(startMul, msg.sender); // Player can decrypt multiplier
-
-        // Persist game
         gameId = ++gameCounter;
         games[gameId] = Game({
             player: msg.sender,
             boardSize: boardSize,
-            board: board,
+            encryptedBoard: packed,
             commitHash: commitHash,
+            ciphertextCommit: ciphertextCommit,
             openedCount: 0,
-            multiplier: startMul,
-            state: State.Active,
-            seedRevealed: false
+            openedBitmap: 0,
+            state: State.Active
         });
 
-        emit GameCreated(gameId, msg.sender, boardSize);
+        emit GameCreated(gameId, msg.sender, boardSize, commitHash, ciphertextCommit);
     }
 
     // ------------------------------------------------------------------------
-    // 🟢 Gameplay
+    // 🎮 Gameplay (bit extraction over euint64)
     // ------------------------------------------------------------------------
-    /// @notice Player picks a tile by index.
-    /// @dev Emits encrypted boolean `isBomb` (0/1) -> ensures privacy, no leakage.
+    /// @notice Pick a tile by index and emit encrypted result (safe/bomb).
+    /// @dev Extracts a single bit from the packed ciphertext using a plaintext mask.
+    ///      Prevents double-pick via plaintext bitmap (does not leak where the bombs are).
     function pickTile(uint256 gameId, uint256 index) external {
         Game storage g = games[gameId];
         require(g.state == State.Active, "Not active");
         require(msg.sender == g.player, "Not your game");
-        require(index < g.board.length, "Invalid index");
+        require(index < g.boardSize, "Index out of range");
 
-        euint32 tile = g.board[index];
-        ebool isBomb = FHE.eq(tile, FHE.asEuint32(1)); // Compare encrypted tile with "1"
+        // Prevent double-opening the same tile (tracked in plaintext)
+        uint64 bit = uint64(1) << uint64(index);
+        require((g.openedBitmap & bit) == 0, "Already opened");
+        g.openedBitmap |= bit;
 
-        // Track opened tiles in plaintext (UX-friendly)
-        g.openedCount++;
+        // isBomb = ((encryptedBoard & (1 << index)) != 0)
+        // Build plaintext mask as uint64, lift to euint64, AND, then compare to zero.
+        euint64 mask = FHE.asEuint64(uint64(1) << uint64(index));
+        euint64 extracted = FHE.and(g.encryptedBoard, mask);
+        ebool isBomb = FHE.not(FHE.eq(extracted, FHE.asEuint64(0)));
 
-        // Update multiplier = multiplier * 1.05 (still encrypted)
-        euint32 grown = FHE.mul(g.multiplier, FHE.asEuint32(MULTIPLIER_STEP));
-        FHE.allowThis(grown);
-        FHE.allow(grown, msg.sender);
-        g.multiplier = grown;
+        g.openedCount += 1;
 
-        emit TilePicked(gameId, index, isBomb, g.openedCount, g.multiplier);
+        emit TilePicked(gameId, index, isBomb, g.openedCount);
     }
 
-    /// @notice Player voluntarily cashes out their current multiplier.
-    function cashOut(uint256 gameId) external {
+    /// @notice End the game (cashout or boom decided off-chain after decryption).
+    /// @dev Frontend/backends call this once outcome is known off-chain (no plaintext on-chain).
+    function endGame(uint256 gameId) external {
         Game storage g = games[gameId];
         require(msg.sender == g.player, "Not your game");
-        require(g.state == State.Active, "Not active");
+        require(g.state == State.Active, "Already ended");
 
-        g.state = State.CashedOut;
-        emit GameEnded(gameId, g.multiplier, g.state);
-    }
-
-    /// @notice End game as Boom (player hit a bomb).
-    /// @dev Typically called by frontend if `isBomb` was decrypted as true.
-    function endAsBoom(uint256 gameId) external {
-        Game storage g = games[gameId];
-        require(msg.sender == g.player, "Not your game");
-        require(g.state == State.Active, "Not active");
-
-        g.state = State.Boom;
-        emit GameEnded(gameId, g.multiplier, g.state);
+        g.state = State.Ended;
+        emit GameEnded(gameId, g.state);
     }
 
     // ------------------------------------------------------------------------
-    // 🟢 Provably-Fair Reveal
+    // 🔍 Provably-fair: commit reveal + ciphertext audit at the end
     // ------------------------------------------------------------------------
-    /// @notice Player reveals their original seed to prove fairness.
-    /// @dev Contract recomputes commit = keccak256(seed, player, boardSize).
+    /// @notice Reveal original seed to check commit integrity.
+    /// @dev Contract recomputes keccak256(seed, player, boardSize).
     function revealSeed(uint256 gameId, uint256 seed) external {
         Game storage g = games[gameId];
         require(msg.sender == g.player, "Not your game");
-        require(g.state == State.CashedOut || g.state == State.Boom, "Not ended");
+        require(g.state == State.Ended, "Reveal after end");
 
         bytes32 expected = keccak256(abi.encode(seed, g.player, g.boardSize));
         require(expected == g.commitHash, "Commit mismatch");
 
-        g.seedRevealed = true;
         emit SeedRevealed(gameId, seed);
     }
 
-    /// @notice Player can also reveal the full plaintext board after game ends.
-    /// @dev Optional — helps external verify tools reconstruct the board.
-    function revealGame(uint256 gameId, uint32[] calldata plainMap) external {
+    /// @notice Allow an external verifier to decrypt the packed board after the game ends.
+    /// @dev This enables a ciphertext-based audit without exposing data mid-game.
+    function allowVerifier(uint256 gameId, address verifier) external {
         Game storage g = games[gameId];
         require(msg.sender == g.player, "Not your game");
-        require(g.state == State.CashedOut || g.state == State.Boom, "Not ended");
+        require(g.state == State.Ended, "Allow after end");
+        require(verifier != address(0), "Zero verifier");
 
-        emit GameRevealed(gameId, plainMap);
+        FHE.allow(g.encryptedBoard, verifier);
+        emit VerifierAllowed(gameId, verifier);
     }
 
     // ------------------------------------------------------------------------
-    // 🟢 View helpers (read-only)
+    // 👀 Views
     // ------------------------------------------------------------------------
-    function getMultiplier(uint256 gameId) external view returns (euint32) {
-        return games[gameId].multiplier;
-    }
-
-    function getOpenedCount(uint256 gameId) external view returns (uint32) {
-        return games[gameId].openedCount;
-    }
-
     function getBoardSize(uint256 gameId) external view returns (uint8) {
         return games[gameId].boardSize;
     }
@@ -192,7 +177,15 @@ contract ConfidentialMines is SepoliaConfig {
         return games[gameId].commitHash;
     }
 
-    function isSeedRevealed(uint256 gameId) external view returns (bool) {
-        return games[gameId].seedRevealed;
+    function getCiphertextCommit(uint256 gameId) external view returns (bytes32) {
+        return games[gameId].ciphertextCommit;
+    }
+
+    function getOpenedCount(uint256 gameId) external view returns (uint32) {
+        return games[gameId].openedCount;
+    }
+
+    function getOpenedBitmap(uint256 gameId) external view returns (uint64) {
+        return games[gameId].openedBitmap;
     }
 }

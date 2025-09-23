@@ -3,7 +3,7 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { ethers } from "ethers";
 
-const CONTRACT_ADDRESS = "0x3b1E64A5cFBB3ad594eB4A79502D609cEe71B244";
+const CONTRACT_ADDRESS = "0x3115579c839E357032dA49C4B3Bc33127eca474f";
 const RPC_URL = "https://eth-sepolia.public.blastapi.io";
 
 // helper to load ABI

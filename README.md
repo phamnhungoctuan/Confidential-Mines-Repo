@@ -184,7 +184,7 @@ This ensures:
 - 🔎 **Verify Proofs**:
   [confidential-mines-verify.vercel.app/api/verify](https://confidential-mines-verify.vercel.app/api/verify)
 - **Contract address (Sepolia Testnet)**:
-  [0x3b1e64a5cfbb3ad594eb4a79502d609cee71b244](https://sepolia.etherscan.io/address/0x3b1e64a5cfbb3ad594eb4a79502d609cee71b244)
+  [0x3115579c839E357032dA49C4B3Bc33127eca474f](https://sepolia.etherscan.io/address/0x3115579c839E357032dA49C4B3Bc33127eca474f)
 
 ---
 

@@ -46,7 +46,7 @@ cp .env.example .env
 Open `.env` and update values as needed:
 
 ```bash
-VITE_CONTRACT_ADDRESS="0x3b1E64A5cFBB3ad594eB4A79502D609cEe71B244"
+VITE_CONTRACT_ADDRESS="0x3115579c839E357032dA49C4B3Bc33127eca474f"
 VITE_TX_HASH_URL="https://sepolia.etherscan.io/tx/"
 ```
 
