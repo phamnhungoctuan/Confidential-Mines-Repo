@@ -166,6 +166,14 @@ npx hardhat deploy --network sepolia
 
 ---
 
+## Gameplay Enhancements
+
+- **Bet & Cashout** — allow players to choose an initial stake and cash out based on the multiplier.  
+- **Reputation & Leaderboards** — maintain transparent leaderboards based on multipliers, while keeping player identities private.  
+- **Game Info by ID** — allow anyone to fetch game state directly from the contract using only the `gameId` (without needing extra off-chain context).
+
+---
+
 ## 🛠 Tech Stack
 
 * **Contracts**: Solidity + Hardhat
