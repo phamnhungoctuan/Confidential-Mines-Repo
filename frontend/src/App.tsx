@@ -48,6 +48,7 @@ export default function App() {
   const [decryptedRows, setDecryptedRows] = useState<number[][] | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [verifyLoading, setVerifyLoading] = useState(false);
 
   function closeVerifyModal() {
     setShowVerifyModal(false);
@@ -190,12 +191,15 @@ export default function App() {
             >
               🔄 New Game
             </button>
-
             <button
-              onClick={() =>
+              onClick={() => {
+                setVerifyLoading(true);
                 handleVerifyClick(
                   gameId,
-                  setShowVerifyModal,
+                  (show) => {
+                    setShowVerifyModal(show);
+                    if (show) setVerifyLoading(false); // chỉ tắt khi modal bật
+                  },
                   () => {},
                   setVerifyError,
                   () => {},
@@ -209,17 +213,19 @@ export default function App() {
                       setVerifying,
                       board
                     )
-                )
-              }
+                );
+              }}
+              disabled={verifyLoading}
               style={{
                 padding: "10px 18px",
-                background: "#8e44ad",
+                background: verifyLoading ? "#555" : "#8e44ad",
                 border: "none",
                 borderRadius: 10,
                 color: "#fff",
+                cursor: verifyLoading ? "wait" : "pointer",
               }}
             >
-              🔎 Verify Fairness
+              {verifyLoading ? "⏳ Verifying..." : "🔎 Verify Fairness"}
             </button>
           </div>
         )}
