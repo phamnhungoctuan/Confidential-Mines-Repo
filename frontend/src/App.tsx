@@ -1,29 +1,13 @@
-import { useState, useEffect } from "react";
-import { connectWallet, disconnectWallet } from "./services/wallet";
+import { useState } from "react";
 import { shortAddr } from "./utils/format";
 import Board from "./components/Board";
 import VerifyModal from "./components/VerifyModal";
 import { handleVerifyClick, verifyGame } from "./services/verifier";
 import { useGame } from "./hooks/useGame";
+import { useWallet } from "./services/wallet";
 
 export default function App() {
-  const [account, setAccount] = useState<string | null>(null);
-
-  // Auto-connect if already authorized
-  useEffect(() => {
-    (async () => {
-      if (window.ethereum) {
-        try {
-          const accounts = await window.ethereum.request({ method: "eth_accounts" });
-          if (accounts && accounts.length > 0) {
-            setAccount(accounts[0]);
-          }
-        } catch (err) {
-          console.error("❌ Failed to auto-connect:", err);
-        }
-      }
-    })();
-  }, []);
+  const { address, isConnected, connectWallet, disconnectWallet } = useWallet();
 
   const {
     gameId,
@@ -41,7 +25,7 @@ export default function App() {
     loadingStep,
     progress,
     proofJson,
-  } = useGame(account);
+  } = useGame(address ?? null);
 
   // Verify modal state
   const [showVerifyModal, setShowVerifyModal] = useState(false);
@@ -68,13 +52,6 @@ export default function App() {
         padding: 24,
       }}
     >
-      {/* Animations */}
-      <style>{`
-        @keyframes pulse { 0% { transform: scale(1);} 50% { transform: scale(1.1);} 100% { transform: scale(1);} }
-        @keyframes shake { 0% { transform: translateX(0);} 25% { transform: translateX(-5px);} 50% { transform: translateX(5px);} 75% { transform: translateX(-5px);} 100% { transform: translateX(0);} }
-        @keyframes glowPath { 0% { box-shadow: 0 0 0px rgba(241,196,15,0.0);} 50% { box-shadow: 0 0 15px rgba(241,196,15,0.9);} 100% { box-shadow: 0 0 0px rgba(241,196,15,0.0);} }
-      `}</style>
-
       {/* Header */}
       <div style={{ textAlign: "center" }}>
         <h1 style={{ fontSize: 48, marginBottom: 8 }}>🎮 Confidential Mines</h1>
@@ -103,42 +80,22 @@ export default function App() {
 
         {/* Wallet + Start */}
         <div style={{ marginTop: 24 }}>
-          {!account ? (
-            <button
-              onClick={() => connectWallet(setAccount)}
-              style={{
-                padding: "12px 18px",
-                background: "#1f1f1f",
-                border: "none",
-                borderRadius: 10,
-                color: "#fff",
-              }}
-            >
-              🦊 Connect Wallet
-            </button>
+          {isConnected ? (
+            <>
+              <p>✅ Connected: {shortAddr(address!)}</p>
+              <button onClick={disconnectWallet}>Disconnect</button>
+            </>
           ) : (
-            <button
-              onClick={() => disconnectWallet(setAccount)}
-              style={{
-                padding: "12px 18px",
-                background: "#27ae60",
-                border: "none",
-                borderRadius: 10,
-                color: "#fff",
-              }}
-            >
-              {shortAddr(account)} (Disconnect)
-            </button>
+            <button onClick={connectWallet}>Connect Wallet</button>
           )}
 
           {!isActive && !proofJson && (
             <button
               onClick={handleStart}
-              disabled={!account || loadingStep !== ""}
+              disabled={!address || loadingStep !== ""}
               style={{
-                padding: "12px 18px",
                 marginLeft: 12,
-                background: !account
+                background: !address
                   ? "#444"
                   : loadingStep !== ""
                   ? "#555"
@@ -146,7 +103,7 @@ export default function App() {
                 border: "none",
                 borderRadius: 10,
                 color: "#111",
-                cursor: !account ? "not-allowed" : "pointer",
+                cursor: !address ? "not-allowed" : "pointer",
               }}
             >
               {loadingStep ? "⏳ Starting..." : "⚡ Start Game"}
@@ -262,14 +219,13 @@ export default function App() {
           >
             ZAMA
           </a>
-      
         </p>
         <p>
           <a
-          href="https://github.com/phamnhungoctuan"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: "#bbb", textDecoration: "none" }}
+            href="https://github.com/phamnhungoctuan"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "#bbb", textDecoration: "none" }}
           >
             🐙 https://github.com/phamnhungoctuan
           </a>

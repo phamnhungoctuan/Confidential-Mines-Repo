@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { ethers } from "ethers";
 import ConfidentialMinesAbi from "../abi/ConfidentialMines.json";
-import { createGame, pickTileLocal } from "../services/contract"; 
+import { createGame, pickTileLocal } from "../services/contract";
 import { generateBoard, openAllBoard } from "../utils/board";
 import { getErrorMessage } from "../errors";
+import { useAppKitProvider } from "@reown/appkit/react";
+import type { Provider } from "@reown/appkit/react";
 
 const ROWS = 6;
 
 export function useGame(account: string | null) {
+  const { walletProvider } = useAppKitProvider<Provider>("eip155");
+
   const [gameId, setGameId] = useState<number | null>(null);
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium");
   const [board, setBoard] = useState<number[][]>([]);
@@ -32,13 +36,20 @@ export function useGame(account: string | null) {
     }
 
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      if (!walletProvider) {
+        setStatusMsg("⚠️ Wallet provider not available");
+        return;
+      }
+
+      const provider = new ethers.BrowserProvider(walletProvider as any);
       const balance = await provider.getBalance(account);
+
       if (balance === 0n) {
         setStatusMsg("⚠️ Your Sepolia wallet has insufficient ETH balance to start the game");
         return;
       }
     } catch (err) {
+      console.error("⚠️ Could not verify wallet balance", err);
       setStatusMsg("⚠️ Could not verify wallet balance");
       return;
     }
@@ -69,11 +80,11 @@ export function useGame(account: string | null) {
     }, 200);
 
     try {
-      const tx = await createGame(newBoard.flat(), newSeed);
+      const tx = await createGame(walletProvider, newBoard.flat(), newSeed);
       clearInterval(timer);
 
       setLoadingStep("confirm");
-      setStatusMsg("🦊 Please confirm transaction in MetaMask...");
+      setStatusMsg("🦊 Please confirm transaction in wallet...");
 
       setLoadingStep("onchain");
       setStatusMsg("⏳ Waiting for on-chain confirmation...");

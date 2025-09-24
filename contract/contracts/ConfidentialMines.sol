@@ -9,7 +9,7 @@ import { SepoliaConfig } from "@fhevm/solidity/config/ZamaConfig.sol";
 /// @notice Minesweeper-like game using a single encrypted ciphertext for the whole board.
 /// @dev Each tile is 1 bit (0 = safe, 1 = bomb), packed into a uint64, then encrypted as euint64.
 ///      This dramatically reduces storage and gas vs. an encrypted array of tiles.
-///      Board size must be <= 64. Designed for 30–40 tiles.
+///      Board size must be <= 64. Designed for up to 63 tiles.
 contract ConfidentialMines is SepoliaConfig {
     // --------- States ----------
     enum State {
