@@ -1,5 +1,4 @@
-
-##  Game Flow
+## Game Flow
 
 ```mermaid
 flowchart TD
@@ -33,6 +32,7 @@ sequenceDiagram
     C->>C: Store encryptedBoard, commitHash,<br/>ciphertextCommit
 ```
 
+---
 
 ## Decrypt & Verify Flow
 
@@ -54,6 +54,8 @@ sequenceDiagram
     V->>P: ✅ or ❌ Verification result
 ```
 
+---
+
 ## FHEVM Workflow
 
 ```mermaid
@@ -67,6 +69,8 @@ flowchart LR
     G --> H[✅ Provably Fair Game]
 ```
 
+---
+
 **Explanation:**
 
 1. **Encrypt** — Player packs board → encrypts as `euint64`.
@@ -74,4 +78,3 @@ flowchart LR
 3. **Compute** — Contract extracts bits with homomorphic ops.
 4. **Decrypt** — Player/verifier decrypts result after end.
 5. **Verify** — Check seed + ciphertextCommit → fairness guaranteed.
-

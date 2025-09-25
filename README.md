@@ -15,10 +15,11 @@ Players enjoy a **Minesweeper-inspired challenge** while knowing every move is *
 * **Privacy by design** — boards are encrypted with **Fully Homomorphic Encryption (FHE)**.
 * **Provably fair** — seeds + commitments guarantee integrity.
 
+---
+
 ## 🌐 Demo
 
 * 🎮 **Play** → [confidential-mines.vercel.app](https://confidential-mines.vercel.app/)
-* 🔎 **Verify** → [confidential-mines-verify.vercel.app/api/verify](https://confidential-mines-verify.vercel.app/api/verify)
 * **Contract (Sepolia)** → [0x3115579c839E357032dA49C4B3Bc33127eca474f](https://sepolia.etherscan.io/address/0x3115579c839E357032dA49C4B3Bc33127eca474f)
 
 ---
@@ -27,15 +28,15 @@ Players enjoy a **Minesweeper-inspired challenge** while knowing every move is *
 
 See [GAME-FLOW.md](./GAME-FLOW.md) for:
 
-- Game flow
-- Encrypt Flow
-- Decrypt & Verify Flow
+* Game flow
+* Encrypt Flow
+* Decrypt & Verify Flow
 
 ### 1. Encrypted Board
 
 * The board (bombs/safe tiles) is packed into a **uint64 bitmask**.
 * Each bit = one tile (0 = safe, 1 = bomb).
-* Entire board ≤ 64 tiles (Confidential Mines uses \~30–40).
+* Entire board ≤ 64 tiles (Confidential Mines uses ~30–40).
 * Bitmask is encrypted into a single `euint64` ciphertext.
 
 ### 2. On-chain Commitment
@@ -56,6 +57,8 @@ function createGame(
 ) external returns (uint256 gameId);
 ```
 
+---
+
 ## 🔐 Why FHE Matters
 
 Without FHE:
@@ -68,62 +71,7 @@ With **Zama’s FHEVM**:
 * Boards are encrypted and stored on-chain.
 * No one (not even miners) can peek at bomb locations.
 * Commitments + seed reveal guarantee **provable fairness**.
-* Verifiers can audit via `allowVerifier`.
-
----
-
-
-
-## 📡 Verify API
-
-### Endpoint
-
-```
-POST https://confidential-mines-verify.vercel.app/api/verify
-```
-
-### Request Body
-
-```json
-{
-  "gameId": 1
-}
-```
-
-### Example Response
-
-```json
-{
-  "ciphertexts": [
-    "0x04c0...deadbeef"   // bit-packed ciphertext
-  ],
-  "contractAddress": "0x3115579c839E357032dA49C4B3Bc33127eca474f",
-  "player": "0x1234abcd...ef",
-  "boardSize": 36,
-  "commitHash": "0x456...",
-  "ciphertextCommit": "0x789...",
-  "openedCount": 2,
-  "openedBitmap": "3",
-  "state": 1
-}
-```
-
-### Fields
-
-* **ciphertexts** → array with the single encrypted board (`euint64`).
-* **boardSize** → number of tiles (≤ 64).
-* **commitHash** → keccak256(seed, player, boardSize).
-* **ciphertextCommit** → commitment for raw ciphertext bytes.
-* **openedBitmap** → tracks opened tiles.
-* **state** → 0 = Active, 1 = Ended.
-
-### Verification Flow
-
-1. Frontend calls `/verify` with `gameId`.
-2. API returns ciphertext + metadata.
-3. Off-chain verifier decrypts ciphertext.
-4. Commit is recomputed and compared.
-5. If match → ✅ provably fair, else → ❌ mismatch.
+* Verifiers can audit directly on-chain.
 
 ---
 
@@ -168,9 +116,9 @@ npx hardhat deploy --network sepolia
 
 ## Gameplay Enhancements
 
-- **Bet & Cashout** — allow players to choose an initial stake and cash out based on the multiplier.  
-- **Reputation & Leaderboards** — maintain transparent leaderboards based on multipliers, while keeping player identities private.  
-- **Game Info by ID** — allow anyone to fetch game state directly from the contract using only the `gameId` (without needing extra off-chain context).
+* **Bet & Cashout** — allow players to choose an initial stake and cash out based on the multiplier.
+* **Reputation & Leaderboards** — maintain transparent leaderboards based on multipliers, while keeping player identities private.
+* **Game Info by ID** — allow anyone to fetch game state directly from the contract using only the `gameId`.
 
 ---
 
