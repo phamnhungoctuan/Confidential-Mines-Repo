@@ -5,6 +5,9 @@ import VerifyModal from "./components/VerifyModal";
 import { handleVerifyClick, verifyGame } from "./services/verifier";
 import { useGame } from "./hooks/useGame";
 import { useWallet } from "./services/wallet";
+import { useAppKitProvider } from "@reown/appkit/react";
+import type { Provider } from "@reown/appkit/react";
+
 
 export default function App() {
   const { address, isConnected, connectWallet, disconnectWallet } = useWallet();
@@ -33,6 +36,7 @@ export default function App() {
   const [verifying, setVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [verifyLoading, setVerifyLoading] = useState(false);
+  const { walletProvider } = useAppKitProvider<Provider>("eip155");
 
   function closeVerifyModal() {
     setShowVerifyModal(false);
@@ -152,6 +156,7 @@ export default function App() {
               onClick={() => {
                 setVerifyLoading(true);
                 handleVerifyClick(
+                  walletProvider,
                   gameId,
                   (show: any) => {
                     setShowVerifyModal(show);
@@ -184,6 +189,35 @@ export default function App() {
             >
               {verifyLoading ? "⏳ Verifying..." : "🔎 Verify Fairness"}
             </button>
+            <button
+            onClick={() => {
+              let resultText = "I just played a provably fair game using Zama’s #FHEVM encryption!";
+
+              if (state) {
+                if (state.boom) {
+                  resultText = `I just lost 💥 after opening ${state.safeCount} safe tiles in a provably fair game using Zama’s #FHEVM encryption!`;
+                } else if (state.safeCount > 0) {
+                  resultText = `I just won 🎉 a provably fair game using Zama’s #FHEVM encryption with a ${state.multiplier}x multiplier!`;
+                }
+              }
+
+              const gameUrl = "https://confidential-mines.vercel.app";
+              const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+                `${resultText} Try it out here: ${gameUrl}`
+              )}`;
+              window.open(tweetUrl, "_blank");
+            }}
+            style={{
+              padding: "10px 18px",
+              background: "#1DA1F2",
+              border: "none",
+              borderRadius: 10,
+              color: "#fff",
+              cursor: "pointer",
+            }}
+          >
+            🐦 Share on X
+          </button>
           </div>
         )}
       </div>
@@ -229,6 +263,17 @@ export default function App() {
           >
             🐙 https://github.com/phamnhungoctuan
           </a>
+        </p>
+
+        <p
+          style={{
+            marginTop: 20,
+            fontSize: 13,
+            color: "#e67e22",
+            fontStyle: "italic",
+          }}
+        >
+          ⚠️ This game runs on the <strong>Sepolia test network</strong> and is for demo purposes only.  
         </p>
       </footer>
     </div>

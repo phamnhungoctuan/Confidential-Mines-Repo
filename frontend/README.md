@@ -47,7 +47,6 @@ Open `.env` and update values as needed:
 
 ```bash
 VITE_CONTRACT_ADDRESS="0x3115579c839E357032dA49C4B3Bc33127eca474f"
-VITE_VERIFY_SERVER=https://confidential-mines-verify.vercel.app/api/verify
 ```
 
 ---
@@ -62,7 +61,7 @@ npm run dev
 
 Starts the development server with Vite. Accessible at:
 
-- Local: [http://localhost:5174](http://localhost:5174)
+- Local: [http://localhost:5173](http://localhost:5173)
 
 ```bash
 npm run build

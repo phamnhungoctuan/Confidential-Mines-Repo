@@ -15,23 +15,9 @@ task("copy-abi", "Copy ABI to frontend").setAction(async () => {
   console.log(`✅ ABI copied to ${dest}`);
 });
 
-task("copy-abi-backend", "Copy ABI to backend").setAction(async () => {
-  const src = path.join(__dirname, "../artifacts/contracts/ConfidentialMines.sol/ConfidentialMines.json");
-  const destDir = path.join(__dirname, "../../backend");
-  const dest = path.join(destDir, "ConfidentialMines.json");
-
-  if (!fs.existsSync(destDir)) {
-    fs.mkdirSync(destDir, { recursive: true });
-  }
-
-  fs.copyFileSync(src, dest);
-  console.log(`✅ ABI copied to ${dest}`);
-});
-
 task("compile", "Compile contracts and copy ABI").setAction(
   async (args, hre, runSuper) => {
     await runSuper(args);
     await hre.run("copy-abi");
-    await hre.run("copy-abi-backend");
   }
 );
