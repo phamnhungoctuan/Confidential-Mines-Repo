@@ -23,7 +23,7 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: {
-      sepolia: vars.get("ETHERSCAN_API_KEY", ""),
+      sepolia: 'REGBCJMY26YEWRCYYX3F98E95NYV3DYKKB',
     },
   },
   gasReporter: {

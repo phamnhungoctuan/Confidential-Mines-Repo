@@ -1,2 +1,2 @@
 self.window = self;
-importScripts("./fhevm.umd.js");
+importScripts("./relayer-sdk-js.umd.js");

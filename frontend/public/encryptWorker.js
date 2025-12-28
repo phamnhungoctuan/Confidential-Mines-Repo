@@ -6,6 +6,11 @@ let fhevm = null;
 
 self.onmessage = async (e) => {
   const { packedBoard, contractAddress, userAddress, sdkConfig } = e.data;
+  const fallbackConfig =
+    (self.RelayerSDK && self.RelayerSDK.SepoliaConfig) ||
+    (self.relayerSDK && self.relayerSDK.SepoliaConfig) ||
+    null;
+  const config = sdkConfig || fallbackConfig;
 
   try {
     // 🔍 Detect SDK global
@@ -36,7 +41,11 @@ self.onmessage = async (e) => {
         throw new Error("Missing createInstance()");
       }
 
-      fhevm = await instanceCreator.createInstance(sdkConfig);
+      if (!config) {
+        throw new Error("Relayer SDK config missing");
+      }
+
+      fhevm = await instanceCreator.createInstance(config);
     }
 
     // 🔐 Build encrypted input
