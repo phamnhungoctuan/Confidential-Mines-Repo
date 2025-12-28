@@ -25,7 +25,7 @@
   ],
   "dependencies": {
     "@fhevm/sdk": "^0.7.0-20",
-    "@fhevm/solidity": "^0.8.0",
+    "@fhevm/solidity": "^0.9.1",
     "@zama-fhe/oracle-solidity": "^0.1.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",

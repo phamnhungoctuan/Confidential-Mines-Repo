@@ -1,6 +1,13 @@
 /* eslint-disable no-undef */
+// Shim browser globals expected by the SDK when running in a worker
+self.window = self;
+self.document = self.document || {};
+if (!self.document.baseURI && self.location?.href) {
+  self.document.baseURI = self.location.href;
+}
 
-importScripts("/fhevm-worker.js");
+// Load the relayer SDK UMD build directly (0.3.0-8 extracted locally)
+importScripts("/relayer-sdk-js.umd.cjs");
 
 let fhevm = null;
 
